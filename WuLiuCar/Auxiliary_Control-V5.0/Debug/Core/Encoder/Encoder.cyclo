@@ -1,0 +1,5 @@
+Encoder.c:5:9:CRC8	19
+Encoder.c:31:6:CS_H	4
+Encoder.c:47:6:CS_L	4
+Encoder.c:63:6:Encoder	47
+Encoder.c:86:6:Encoder_Detection	1

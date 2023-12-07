@@ -1,0 +1,4 @@
+../Core/BLE/BLE.c:9:6:BLE_Detection	16	static
+../Core/BLE/BLE.c:25:6:BLE_Init	0	static
+../Core/BLE/BLE.c:30:6:BLE_Receive	16	static
+../Core/BLE/BLE.c:57:6:BLE_Receive_Clear	0	static
