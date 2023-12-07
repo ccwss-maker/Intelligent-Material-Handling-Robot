@@ -1,4 +1,0 @@
-BLE.c:9:6:BLE_Detection	5
-BLE.c:25:6:BLE_Init	1
-BLE.c:30:6:BLE_Receive	17
-BLE.c:57:6:BLE_Receive_Clear	1
