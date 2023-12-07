@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "*.rmd": "markdown",
+        "usart.h": "c",
+        "imu.h": "c",
+        "ble.h": "c",
+        "wheel.h": "c",
+        "arm.h": "c",
+        "key.h": "c",
+        "pid.h": "c"
+    },
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "aiXcoder.showTrayIcon": true
+}

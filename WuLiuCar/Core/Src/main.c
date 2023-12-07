@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "i2c.h"
 #include "spi.h"
 #include "tim.h"
@@ -27,47 +28,23 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-///////////////////////////////OLED显示/////////////////////////////	
-#include "u8g2.h"
-#include "stdio.h"
+///////////////////////////////OLED/////////////////////////////	
+#include <display.h>
+#include <key.h>
+#include <arm.h>
+#include <wheel.h>
+#include <ble.h>
+#include <imu.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-/////////////////////////////OLED显示/////////////////////////////
-u8g2_t u8g2;
-uint8_t str_buff[64];	
-uint8_t option[2] = {1,1};
-uint8_t option_change_sign = 0; //改变为1
-uint8_t KEY_C_sign = 0; //按下一次为1
-uint8_t UI_ARM_sign = 0; //机械臂为1
-uint8_t change_speed_sign= 0; //数值调整速度标志 0：单次调整 1：慢速 2：中速 3：快速
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define PWM_JXB_1 TIM2->CCR1
-#define PWM_JXB_2 TIM2->CCR2
-#define PWM_JXB_3 TIM2->CCR3
-#define PWM_JXB_4 TIM3->CCR2
-#define PWM_JXB_5 TIM3->CCR1
-#define PWM_JXB_6 TIM2->CCR4
 
-#define PWM_FL TIM1->CCR4
-#define PWM_FR TIM1->CCR3
-#define PWM_BL TIM1->CCR2
-#define PWM_BR TIM1->CCR1
-
-#define KEY_L HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_4)==GPIO_PIN_RESET
-#define KEY_R HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_12)==GPIO_PIN_RESET
-#define KEY_T HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_15)==GPIO_PIN_RESET
-#define KEY_B HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_13)==GPIO_PIN_RESET
-#define KEY_C HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_3)==GPIO_PIN_RESET
-#define KEY_L_PIN GPIO_PIN_4
-#define KEY_R_PIN GPIO_PIN_12
-#define KEY_T_PIN GPIO_PIN_15
-#define KEY_B_PIN GPIO_PIN_13
-#define KEY_C_PIN GPIO_PIN_3
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -79,6 +56,20 @@ uint8_t change_speed_sign= 0; //数值调整速度标志 0：单次调整 1：慢速 2：中速 3：
 
 /* USER CODE BEGIN PV */
 
+extern u8g2_t u8g2;
+extern uint8_t page;
+extern mouse_information_ mouse_information[4];
+
+uint8_t Tracking_Data[4]={0};
+uint8_t ble[20]={0};
+#if PID_Config_Mode
+	float www=0;
+	float yaw=0;
+#else 
+	extern ble_uart_ ble_uart;
+#endif
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,426 +80,31 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-///////////////////////////////OLED显示/////////////////////////////
-uint8_t u8g2_gpio_and_delay_stm32(U8X8_UNUSED u8x8_t *u8x8, U8X8_UNUSED uint8_t msg, U8X8_UNUSED uint8_t arg_int, U8X8_UNUSED void *arg_ptr)
+
+int fputc(int ch, FILE *f)
 {
-	switch(msg)
-		{
-		case U8X8_MSG_DELAY_MILLI:
-		HAL_Delay(arg_int);
-		break;
-		
-		case U8X8_MSG_DELAY_10MICRO:
-		for (uint16_t n = 0; n < 320; n++)
-		{
-			__NOP();
-		}
-		break;
-		
-		case U8X8_MSG_DELAY_100NANO:
-		__NOP();
-		break;
-		
-		// Function to define the logic level of the CS line
-		case U8X8_MSG_GPIO_CS:
-		break;
-		
-		//Function to define the logic level of the Data/ Command line
-		case U8X8_MSG_GPIO_DC:
-			if (arg_int) HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12, GPIO_PIN_SET);
-			else HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12, GPIO_PIN_RESET);
-		break;
-		
-		//Function to define the logic level of the RESET line
-		case U8X8_MSG_GPIO_RESET:
-			if (arg_int) HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14, GPIO_PIN_SET);
-			else HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14, GPIO_PIN_RESET);
-		break;
-		
-		default:
-			return 0; //A message was received which is not implemented, return 0 to indicate an error
-	}
-	return 1; // command processed successfully.
+  HAL_UART_Transmit(&huart6,(uint8_t *)&ch,1,HAL_MAX_DELAY);
+  return ch;
 }
 
-void display(char message[],int x,int y,int sign)
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if(sign==1)
+	if(htim==&htim1)
 	{
-	u8g2_ClearBuffer(&u8g2);			
-	}
-	u8g2_SetFont(&u8g2, u8g2_font_8x13_mf);
-	sprintf((char*)str_buff,"%s",message);
-	u8g2_DrawStr(&u8g2,x,y,(char*)str_buff);     
-	u8g2_SendBuffer(&u8g2);
-}
-
-void display_num(char message[],int num,int x,int y,int sign)
-{
-	if(sign==1)
-	{
-	u8g2_ClearBuffer(&u8g2);			
-	}
-	u8g2_SetFont(&u8g2, u8g2_font_8x13_mf);
-	sprintf((char*)str_buff,"%s%d",message,num);
-	u8g2_DrawStr(&u8g2,x,y,(char*)str_buff);     
-	u8g2_SendBuffer(&u8g2);
-}
-
-void page_1_init()
-{
-	display("P1 ARM",40,9,1);
-	u8g2_DrawLine(&u8g2 , 0,11,125,11);
-	u8g2_DrawLine(&u8g2 , 0,27,125,27);
-	u8g2_DrawLine(&u8g2 , 0,45,125,45);
-	u8g2_DrawLine(&u8g2 , 0,63,125,63);
-	
-	u8g2_DrawLine(&u8g2 , 0,11,0,63);
-	u8g2_DrawLine(&u8g2 , 9,11,9,63);
-	u8g2_DrawLine(&u8g2 , 63,11,63,63);
-	u8g2_DrawLine(&u8g2 , 72,11,72,63);
-	u8g2_DrawLine(&u8g2 , 125,11,125,63);
-	
-	display("1",1,23,0);
-	display("2",1,41,0);
-	display("3",1,59,0);
-	display("4",64,23,0);
-	display("5",64,41,0);
-	display("6",64,59,0);
-	
-	static uint8_t sign_once_1 = 1;
-	if(sign_once_1)
-	{
-		u8g2_DrawCircle(&u8g2,4,4,3,U8G2_DRAW_ALL);
-		u8g2_DrawCircle(&u8g2,13,4,3,U8G2_DRAW_ALL);
-		u8g2_DrawCircle(&u8g2,22,4,3,U8G2_DRAW_ALL);
-		u8g2_DrawCircle(&u8g2,31,4,3,U8G2_DRAW_ALL);
-		
-		u8g2_DrawDisc(&u8g2,31,4,3,U8G2_DRAW_ALL);
-		u8g2_DrawDisc(&u8g2,17,19,2,U8G2_DRAW_ALL);
-		sign_once_1=0;
-	}
-	
-	u8g2_SendBuffer(&u8g2);
-}
-
-void page_1_circle_num()
-{
-	static uint8_t x = 0 , y = 0 , rad = 2;
-	switch(option[0])
-	{
-		case 1:
-			x = 17;
-			break;
-		case 2:
-			x = 80;
-			break;
-	}
-	
-	switch(option[1])
-	{
-		case 1:
-			y = 19;
-			break;
-		case 2:
-			y = 35;
-			break;
-		case 3:
-			y = 53;
-			break;
-	}
-	
-	if(KEY_C_sign)
-	{
-		switch(rad)
-		{
-			case 2:
-				rad = 3;
-				UI_ARM_sign = 1;
-				break;
-			case 3:
-				rad = 2;
-				UI_ARM_sign = 0;
-				break;
-		}
-		KEY_C_sign = 0;
-	}
-	u8g2_DrawDisc(&u8g2,x,y,rad,U8G2_DRAW_ALL);
-	u8g2_SendBuffer(&u8g2);
-}
-
-void page_1_circle_change_speed()
-{
-	static uint8_t x = 0;
-	switch(change_speed_sign)
-	{
-		case 0:
-			x = 31;
-			break;
-		case 1:
-			x = 22;
-			break;
-		case 2:
-			x = 13;
-			break;
-		case 3:
-			x = 4;
-			break;
-	}
-	u8g2_DrawCircle(&u8g2,4,4,3,U8G2_DRAW_ALL);
-	u8g2_DrawCircle(&u8g2,13,4,3,U8G2_DRAW_ALL);
-	u8g2_DrawCircle(&u8g2,22,4,3,U8G2_DRAW_ALL);
-	u8g2_DrawCircle(&u8g2,31,4,3,U8G2_DRAW_ALL);
-	u8g2_DrawDisc(&u8g2,x,4,3,U8G2_DRAW_ALL);
-	u8g2_SendBuffer(&u8g2);
-}
-
-void page_1_update()
-{
-	if(option_change_sign)
-	{
-		u8g2_ClearBuffer(&u8g2);
-		page_1_init();
-		page_1_circle_num();
-		page_1_circle_change_speed();
-		option_change_sign = 0;
-	}
-	u8g2_SetFont(&u8g2, u8g2_font_8x13_mf);
-	sprintf((char*)str_buff,"%4d",PWM_JXB_1);
-	u8g2_DrawStr(&u8g2,24,23,(char*)str_buff);  
-	
-	u8g2_SetFont(&u8g2, u8g2_font_8x13_mf);
-	sprintf((char*)str_buff,"%4d",PWM_JXB_2);
-	u8g2_DrawStr(&u8g2,24,41,(char*)str_buff);   
-	
-	u8g2_SetFont(&u8g2, u8g2_font_8x13_mf);
-	sprintf((char*)str_buff,"%4d",PWM_JXB_3);
-	u8g2_DrawStr(&u8g2,24,59,(char*)str_buff);
-	
-	u8g2_SetFont(&u8g2, u8g2_font_8x13_mf);
-	sprintf((char*)str_buff,"%4d",PWM_JXB_4);
-	u8g2_DrawStr(&u8g2,87,23,(char*)str_buff);
-	
-	u8g2_SetFont(&u8g2, u8g2_font_8x13_mf);
-	sprintf((char*)str_buff,"%4d",PWM_JXB_5);
-	u8g2_DrawStr(&u8g2,87,41,(char*)str_buff);
-	
-	u8g2_SetFont(&u8g2, u8g2_font_8x13_mf);
-	sprintf((char*)str_buff,"%4d",PWM_JXB_6);
-	u8g2_DrawStr(&u8g2,87,59,(char*)str_buff);
-	
-	u8g2_SendBuffer(&u8g2);
-}
-
-void ARM_Control(volatile uint32_t* num , uint8_t up)
-{
-		if(up)
-		{
-			switch(change_speed_sign)
-			{
-				case 0:
-					if(*num+1 <= 2500)	*num +=1;
-					else								*num = 2500;
-					break;
-				case 1:
-					if(*num+10 <= 2500)	*num +=10;
-					else								*num = 2500;
-					break;
-				case 2:
-					if(*num+100 <= 2500)	*num +=100;
-					else									*num = 2500;
-					break;
-				case 3:
-					if(*num+1000 <= 2500)	*num +=1000;
-					else									*num = 2500;
-					break;
-			}
-		}
-		else
-		{
-			switch(change_speed_sign)
-			{
-				case 0:
-					if(*num-1 >= 100 && *num-1 <= 2500)	*num -=1;
-					else							*num = 100;
-					break;
-				case 1:
-					if(*num-10 >= 100 && *num-10 <= 2500)	*num -=10;
-					else								*num = 100;
-					break;
-				case 2:
-					if(*num-100 >= 100 && *num-100 <= 2500)	*num -=100;
-					else								*num = 100;
-					break;
-				case 3:
-					if(*num-1000 >= 100 && *num-1000 <= 2500)	*num -=1000;
-					else									*num = 100;
-					break;
-			}
-		}
-}
-
-void ARM_Control_ALL(uint8_t option[] , uint8_t up)
-{
-	if(option[0]==1)
-	{
-		switch(option[1])
-		{
-			case 1:
-				ARM_Control(&PWM_JXB_1,up);
-				break;
-			case 2:
-				ARM_Control(&PWM_JXB_2,up);
-				break;
-			case 3:
-				ARM_Control(&PWM_JXB_3,up);
-				break;
-		}
-	}
-	else
-	{
-		switch(option[1])
-		{
-			case 1:
-				ARM_Control(&PWM_JXB_4,up);
-				break;
-			case 2:
-				ARM_Control(&PWM_JXB_5,up);
-				break;
-			case 3:
-				ARM_Control(&PWM_JXB_6,up);
-				break;
-		}
-	}
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  if(GPIO_Pin==KEY_L_PIN)
-	{
-		if(KEY_L)
-		{
-			if(UI_ARM_sign)
-			{
-				if(change_speed_sign==3)
-				{
-					change_speed_sign = 0;
-				}
-				else
-				{
-					change_speed_sign++;
-				}
-				page_1_circle_change_speed();
-			}
-			else
-			{
-				switch(option[0])
-				{
-					case 1:
-						option[0] = 2;
-						break;
-					case 2:
-						option[0] = 1;
-						break;
-				}
-			}
-			option_change_sign = 1;
-		}
-	}
-	
-	if(GPIO_Pin==KEY_R_PIN)
-	{
-		if(KEY_R)
-		{
-			if(UI_ARM_sign)
-			{
-				if(change_speed_sign==0)
-				{
-					change_speed_sign = 3;
-				}
-				else
-				{
-					change_speed_sign--;
-				}
-				page_1_circle_change_speed();
-			}
-			else
-			{
-				switch(option[0])
-				{
-					case 1:
-						option[0] = 2;
-						break;
-					case 2:
-						option[0] = 1;
-						break;
-				}
-			}
-			option_change_sign = 1;
-		}
-	}
-	
-	if(GPIO_Pin==KEY_T_PIN)
-	{
-		if(KEY_T)
-		{
-			if(UI_ARM_sign)
-			{
-				ARM_Control_ALL(option,1);
-			}
-			else
-			{
-				switch(option[1])
-				{
-					case 1:
-						option[1] = 3;
-						break;
-					case 2:
-						option[1] = 1;
-						break;
-					case 3:
-						option[1] = 2;
-						break;
-				}
-			}
-			option_change_sign = 1;
-		}
-	}
-	
-	if(GPIO_Pin==KEY_B_PIN)
-	{
-		if(KEY_B)
-		{
-			if(UI_ARM_sign)
-			{
-				ARM_Control_ALL(option,0);
-			}
-			else
-			{
-				switch(option[1])
-				{
-					case 1:
-						option[1] = 2;
-						break;
-					case 2:
-						option[1] = 3;
-						break;
-					case 3:
-						option[1] = 1;
-						break;
-				}
-			}
-			option_change_sign = 1;
-		}
-	}
-	
-	if(GPIO_Pin==KEY_C_PIN)
-	{
-		if(KEY_C)
-		{
-			KEY_C_sign = 1;
-			option_change_sign = 1;
-		}
+    key_test();
+		OLED_display();
+//		uint8_t data=0xFF;
+//		HAL_I2C_Master_Transmit(&hi2c3,0x01<<1,&data,1,HAL_MAX_DELAY);
+//		HAL_I2C_Master_Receive(&hi2c3,0x01<<1,&Tracking_Data[0],1,HAL_MAX_DELAY);
+//		
+//		HAL_I2C_Master_Transmit(&hi2c3,0x02<<1,&data,1,HAL_MAX_DELAY);
+//		HAL_I2C_Master_Receive(&hi2c3,0x02<<1,&Tracking_Data[1],1,HAL_MAX_DELAY);
+//		
+//		HAL_I2C_Master_Transmit(&hi2c3,0x03<<1,&data,1,HAL_MAX_DELAY);
+//		HAL_I2C_Master_Receive(&hi2c3,0x03<<1,&Tracking_Data[2],1,HAL_MAX_DELAY);
+//		
+//		HAL_I2C_Master_Transmit(&hi2c3,0x04<<1,&data,1,HAL_MAX_DELAY);
+//		HAL_I2C_Master_Receive(&hi2c3,0x04<<1,&Tracking_Data[3],1,HAL_MAX_DELAY);
 	}
 }
 /* USER CODE END 0 */
@@ -520,7 +116,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -541,51 +136,63 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_TIM1_Init();
-  MX_TIM2_Init();
+  MX_DMA_Init();
+  MX_I2C3_Init();
   MX_TIM3_Init();
-  MX_SPI2_Init();
+  MX_TIM4_Init();
   MX_USART1_UART_Init();
-  MX_I2C1_Init();
+  MX_USART6_UART_Init();
+  MX_SPI3_Init();
+  MX_TIM2_Init();
+  MX_I2C2_Init();
+  MX_USART2_UART_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-	///////////////////////////////OLED显示/////////////////////////////
+	///////////////////////////////OLED/////////////////////////////
 	u8g2_Setup_sh1106_128x64_noname_f(&u8g2,U8G2_R0,u8x8_byte_4wire_hw_spi,u8g2_gpio_and_delay_stm32);
 	u8g2_InitDisplay(&u8g2); 
 	u8g2_SetPowerSave(&u8g2,0);
-	/////////////////////////////////////////////   TIM1_DMA   /////////////////////	
-	HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);		
-	HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_4);
-	/////////////////////////////////////////////   TIM2_DMA   /////////////////////	
-	HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);		
-	HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_4);
-	/////////////////////////////////////////////   TIM3_DMA   /////////////////////	
-	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_1);	
+	///////////////////////////////////////////////   TIM1     /////////////////////	
+	HAL_TIM_Base_Start_IT(&htim1);
+	/////////////////////////////////////////////   TIM3_PWM   /////////////////////	
+	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_1);		
 	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_2);
-//	/////////////////////////////////////////////   TIM4   /////////////////////////
-//	HAL_TIM_Base_Start(&htim4);
-	/////////////////////////////////////////////   ARM   /////////////////////////
-	PWM_JXB_1 = 1900; //500-2500
-	PWM_JXB_2 = 1200; //500-2500
-	PWM_JXB_3 = 500; //500-2500
-	PWM_JXB_4 = 1500; //500-2500
-	PWM_JXB_5 = 1000; //500-2500
-	PWM_JXB_6 = 1800; //500-2500
-	/////////////////////////////////////////////   UI   /////////////////////////
-	page_1_init();
+	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_4);
+	/////////////////////////////////////////////   TIM4_PWM   /////////////////////	
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);		
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_4);
+	////////////////////////////////////////////    Arm_Init ///////////////////////
+	arm_Init();
+  ////////////////////////////////////////////    IMU_Init ///////////////////////
+	IMU_Init();
+  ////////////////////////////////////////////    Wheel_Init ///////////////////////
+  Wheel_Init();
+	
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {
-		page_1_update();
+  {	
+		Control_NUM(mouse_information[2], page);
+		Control_Angle(mouse_information[0], page);
+		Control_SPD(mouse_information[1], page);
+    BLE_control();
+		
+//    key_test();
+//		OLED_display();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	#if PID_Config_Mode
+		extern message_imu_ message_imu;
+		Control_Mecanum(0,0,yaw,255);
+		PRINTF(PID,"%f,%f",yaw,message_imu.Yaw);
+//		PRINTF(PID,"%f,%f",www,message_imu.Wz);
+	#endif
   }
   /* USER CODE END 3 */
 }
@@ -599,6 +206,11 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
@@ -606,12 +218,16 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 100;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
   }
+
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -621,7 +237,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -662,5 +278,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

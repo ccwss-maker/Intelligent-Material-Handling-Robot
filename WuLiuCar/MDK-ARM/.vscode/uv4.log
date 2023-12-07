@@ -1,0 +1,67 @@
+*** Using Compiler 'V5.06 update 1 (build 61)', folder: 'D:\Program\Work\Keil_v5\ARM\ARMCC\Bin'
+Build target 'WuLiuCar-V2.0'
+compiling usart.c...
+compiling tim.c...
+compiling dma.c...
+compiling stm32f4xx_it.c...
+compiling i2c.c...
+compiling stm32f4xx_hal_msp.c...
+compiling spi.c...
+compiling gpio.c...
+compiling main.c...
+../Core/Src/main.c(74): error:  #147-D: declaration is incompatible with "int fputc(int, FILE *)" (declared at line 673 of "D:\Program\Work\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h")
+  int fputc(int ch, FILE f)
+../Core/Src/main.c(74): error:  #70: incomplete type is not allowed
+  int fputc(int ch, FILE f)
+../Core/Src/main.c(76): warning:  #767-D: conversion from pointer to smaller integer
+    HAL_UART_Transmit(&huart6,((unsigned char)&ch),1,HAL_MAX_DELAY);
+../Core/Src/main.c(76): error:  #167: argument of type "unsigned char" is incompatible with parameter of type "const uint8_t *"
+    HAL_UART_Transmit(&huart6,((unsigned char)&ch),1,
+AL_MAX_DELAY);
+../Core/Src/main.c: 1 warning, 3 errors
+compiling u8x8_byte.c...
+compiling display.c...
+compiling PID.c...
+compiling imu.c...
+..\Core\Src\imu.c(28): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  			message_imu.Ax=(float)message_imu.data[0]/32768*16*9.8;
+..\Core\Src\imu.c(29): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  			message_imu.Ay=(float)message_imu.data[1]/32768*16*9.8;
+..\Core\Src\imu.c(30): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  			message_imu.Az=(float)message_imu.data[2]/32768*16*9.8;
+..\Core\Src\imu.c(41): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  			message_imu.Roll=(float)message_imu.data[0]/32768.0*180;
+..\Core\Src\imu.c(42): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  			message_imu.Pitch=(float)message_imu.data[1]/32768.0*180;
+..\Core\Src\imu.c(43): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  			message_imu.Yaw=(float)message_imu.data[2]/32768.0*180;
+..\Core\Src\imu.c(69): warning:  #1-D: last line of file ends without a newline
+  }
+..\Core\Src\imu.c: 7 warnings, 0 errors
+compiling key.c...
+..\Core\Src\key.c(47): warning:  #1-D: last line of file ends without a newline
+  }
+..\Core\Src\key.c: 1 warning, 0 errors
+compiling ble.c...
+compiling wheel.c...
+..\Core\Src\wheel.c(283): warning:  #223-D: function "print" declared implicitly
+  	
+RINT(plotter, "%f,%f,%f,%f",v_x,v_y,w,message_imu.Yaw);
+..\Core\Src\wheel.c: 1 warning, 0 errors
+compiling arm.c...
+..\Core\Src\arm.c(108): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  							PID.Kp+=0.01;
+..\Core\Src\arm.c(113): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  							PID.Kp-=0.01;
+..\Core\Src\arm.c(131): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  							PID.Ki+=0.001;
+..\Core\Src\arm.c(136): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  							PID.Ki-=0.001;
+..\Core\Src\arm.c(154): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  							PID.Kd+=0.01;
+..\Core\Src\arm.c(159): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  							PID.Kd-=0.01;
+..\Core\Src\arm.c: 6 warnings, 0 errors
+"WuLiuCar-V2.0\WuLiuCar-V2.0" - 3 Error(s), 16 Warning(s).
+Target not created.
+Build Time Elapsed:  00:00:05

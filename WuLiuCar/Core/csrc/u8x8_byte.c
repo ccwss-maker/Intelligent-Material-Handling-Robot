@@ -110,7 +110,7 @@ uint8_t u8x8_byte_4wire_hw_spi(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void 
   switch (msg)
   {
 			case U8X8_MSG_BYTE_SEND:
-				HAL_SPI_Transmit(&hspi2,(uint8_t *)arg_ptr,arg_int,HAL_MAX_DELAY);
+				HAL_SPI_Transmit(&hspi3,(uint8_t *)arg_ptr,arg_int,HAL_MAX_DELAY);
 				break;
 
 			case U8X8_MSG_BYTE_INIT:
