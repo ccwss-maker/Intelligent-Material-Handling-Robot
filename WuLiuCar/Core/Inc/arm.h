@@ -1,48 +1,43 @@
-#ifndef arm_h
-#define arm_h
-#include "main.h"
-#include <key.h>
-#include <display.h>
-#include <math.h>
+#ifndef ARM_H
+#define ARM_H
+#include <main.h>
+#include "Motro_Control.h"
+#define Arm_Subdivision_Step 256
+#define Arm_Reduction_Ratio 3.7
+#define Arm_Velocity 20
+#define Arm_Accelerate 150
 
-#define ARM_ADD_SUB_1 30
-#define ARM_ADD_SUB_2 20
-#define ARM_ADD_SUB_3 15
+#define Arm_Rear_Address 0x05
+#define Arm_Front_Address 0x06
+#define Arm_Pedestal_Address 0x07
+
+/*18 ~ 310*/
+#define Rear_Encoder_Angle_Correction 200
+#define Rear_Angle_To_0_Set 20
+
+/*3 ~ 340*/
+#define Front_Encoder_Angle_Correction 220
+#define Front_Angle_To_0_Set 40
+
+/*0 ~ 360*/
+#define Pedestal_Encoder_Angle_Correction 0
+#define Pedestal_Angle_To_0_Set 180
 
 typedef struct{
-	float value;
-	float increment;
-	int min;
-	int max;
-}value_;
+   bool Close_sign;
+   bool debug_sign;
+   float Limit_Angle_To_0[2];
+}Arm_;
 
-typedef struct{
-	value_ x;
-	value_ y;
-	value_ z;
-	float a;
-	float b;
-	float c;
-	float d;
-}arm_;
+void Arm_Open();
+void Arm_Close();
+void Arm_MStep_Set(uint16_t num);
+void Arm_Angle_Check();
+void Arm_Encoder_Check();
+void Arm_Position_Control(uint8_t Address, int8_t direction, uint16_t speed, uint8_t aacelerated, float angle, bool Angle_Check_Sign);
 
-void Control_NUM(mouse_information_ mouse_information, uint8_t page); 
-void Control_Angle(mouse_information_ mouse_information, uint8_t page);
-void Control_Angle_ble(uint8_t change);
+void Arm_Init();
 
-void Control_NUM_(volatile uint32_t* arm_p, uint8_t mode, int min, int max);
-void Control_NUM_add_sub(volatile uint32_t* arm_p, uint8_t key, uint8_t mode, int max_min, int sign);
-//void Control_NUM_add(volatile uint32_t* arm_p, uint8_t* key, uint8_t mode, int max);
-//void Control_NUM_sub(volatile uint32_t* arm_p, uint8_t* key, uint8_t mode, int min);
+extern Arm_ Arm;
 
-void Control_Angle_(value_* v1, value_* v2, value_* v3, uint8_t mode);
-void Control_Angle_add_sub(value_* v1, value_* v2, value_* v3, uint8_t key, uint8_t mode,void (*p)(value_* v1, value_* v2, value_* v3, int step, int delay));
-void Control_Angle_add_(value_* v1, value_* v2, value_* v3, int step, int delay);
-void Control_Angle_sub_(value_* v1, value_* v2, value_* v3, int step, int delay);
-void Angle_move_(volatile uint32_t* arm_p, float angle, int incremental);
-void Angle_calculate(void);
-void Angle_move(void);
-void arm_open(void);
-void arm_close(void);
-void arm_Init(void);
 #endif

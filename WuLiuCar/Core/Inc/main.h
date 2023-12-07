@@ -32,12 +32,11 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
-#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-#define PRINTF(title, fmt, args...)  printf("{"#title"}"fmt"\n", ##args)
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -58,72 +57,58 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BLE_State_Pin GPIO_PIN_13
-#define BLE_State_GPIO_Port GPIOC
-#define IMU_TX_Pin GPIO_PIN_2
-#define IMU_TX_GPIO_Port GPIOA
-#define IMU_RX_Pin GPIO_PIN_3
-#define IMU_RX_GPIO_Port GPIOA
-#define KEY_TL_Pin GPIO_PIN_4
-#define KEY_TL_GPIO_Port GPIOA
-#define KEY_L_Pin GPIO_PIN_5
-#define KEY_L_GPIO_Port GPIOA
-#define KEY_BL_Pin GPIO_PIN_6
-#define KEY_BL_GPIO_Port GPIOA
-#define KEY_T_Pin GPIO_PIN_7
-#define KEY_T_GPIO_Port GPIOA
-#define KEY_C_Pin GPIO_PIN_4
-#define KEY_C_GPIO_Port GPIOC
-#define KEY_B_Pin GPIO_PIN_5
-#define KEY_B_GPIO_Port GPIOC
-#define KEY_TR_Pin GPIO_PIN_0
-#define KEY_TR_GPIO_Port GPIOB
-#define KEY_R_Pin GPIO_PIN_1
-#define KEY_R_GPIO_Port GPIOB
-#define KEY_BR_Pin GPIO_PIN_2
-#define KEY_BR_GPIO_Port GPIOB
-#define BLE_TX_Pin GPIO_PIN_6
-#define BLE_TX_GPIO_Port GPIOC
-#define BLE_RX_Pin GPIO_PIN_7
-#define BLE_RX_GPIO_Port GPIOC
-#define Tracking_SDA_Pin GPIO_PIN_9
-#define Tracking_SDA_GPIO_Port GPIOC
-#define Tracking_SCL_Pin GPIO_PIN_8
-#define Tracking_SCL_GPIO_Port GPIOA
-#define Motro_TX_Pin GPIO_PIN_9
-#define Motro_TX_GPIO_Port GPIOA
-#define Motro_RX_Pin GPIO_PIN_10
-#define Motro_RX_GPIO_Port GPIOA
-#define OLED_DC_Pin GPIO_PIN_15
+#define TOUCH_RST_Pin GPIO_PIN_13
+#define TOUCH_RST_GPIO_Port GPIOC
+#define TOUCH_INT_Pin GPIO_PIN_14
+#define TOUCH_INT_GPIO_Port GPIOC
+#define TOUCH_INT_EXTI_IRQn EXTI15_10_IRQn
+#define UART_IMU_TX_MCU_Pin GPIO_PIN_2
+#define UART_IMU_TX_MCU_GPIO_Port GPIOA
+#define UART_IMU_RX_MCU_Pin GPIO_PIN_3
+#define UART_IMU_RX_MCU_GPIO_Port GPIOA
+#define OLED_RES_Pin GPIO_PIN_4
+#define OLED_RES_GPIO_Port GPIOA
+#define OLED_SCK_Pin GPIO_PIN_5
+#define OLED_SCK_GPIO_Port GPIOA
+#define OLED_DC_Pin GPIO_PIN_6
 #define OLED_DC_GPIO_Port GPIOA
-#define OLED_SCK_Pin GPIO_PIN_10
-#define OLED_SCK_GPIO_Port GPIOC
-#define OLED_RES_Pin GPIO_PIN_11
-#define OLED_RES_GPIO_Port GPIOC
-#define OLED_MOSI_Pin GPIO_PIN_12
-#define OLED_MOSI_GPIO_Port GPIOC
-#define PWM_Arm_1_Pin GPIO_PIN_4
-#define PWM_Arm_1_GPIO_Port GPIOB
-#define PWM_Arm_2_Pin GPIO_PIN_5
-#define PWM_Arm_2_GPIO_Port GPIOB
-#define PWM_Arm_3_Pin GPIO_PIN_6
-#define PWM_Arm_3_GPIO_Port GPIOB
-#define PWM_Arm_4_Pin GPIO_PIN_7
-#define PWM_Arm_4_GPIO_Port GPIOB
-#define PWM_Arm_5_Pin GPIO_PIN_8
-#define PWM_Arm_5_GPIO_Port GPIOB
-#define PWM_Arm_6_Pin GPIO_PIN_9
-#define PWM_Arm_6_GPIO_Port GPIOB
+#define OLED_MOSI_Pin GPIO_PIN_7
+#define OLED_MOSI_GPIO_Port GPIOA
+#define UART_CAM_RX_Pin GPIO_PIN_5
+#define UART_CAM_RX_GPIO_Port GPIOC
+#define I2C_NVIDIA_SCL_Pin GPIO_PIN_10
+#define I2C_NVIDIA_SCL_GPIO_Port GPIOB
+#define OLED_CS_Pin GPIO_PIN_12
+#define OLED_CS_GPIO_Port GPIOB
+#define UART_BLE_TX_MCU_Pin GPIO_PIN_6
+#define UART_BLE_TX_MCU_GPIO_Port GPIOC
+#define UART_BLE_RX_MCU_Pin GPIO_PIN_7
+#define UART_BLE_RX_MCU_GPIO_Port GPIOC
+#define I2C_TRACKING_SCL_Pin GPIO_PIN_8
+#define I2C_TRACKING_SCL_GPIO_Port GPIOA
+#define SDIO_INT_Pin GPIO_PIN_10
+#define SDIO_INT_GPIO_Port GPIOA
+#define UART_MOTRO_TX_Pin GPIO_PIN_15
+#define UART_MOTRO_TX_GPIO_Port GPIOA
+#define UART_CAM_TX_Pin GPIO_PIN_10
+#define UART_CAM_TX_GPIO_Port GPIOC
+#define UART_MOTRO_RX_Pin GPIO_PIN_3
+#define UART_MOTRO_RX_GPIO_Port GPIOB
+#define I2C_TRACKING_SDA_Pin GPIO_PIN_4
+#define I2C_TRACKING_SDA_GPIO_Port GPIOB
+#define BLE_STATE_Pin GPIO_PIN_5
+#define BLE_STATE_GPIO_Port GPIOB
+#define BLE_STATE_EXTI_IRQn EXTI9_5_IRQn
+#define I2C_TOUCH_SCL_Pin GPIO_PIN_6
+#define I2C_TOUCH_SCL_GPIO_Port GPIOB
+#define I2C_TOUCH_SDA_Pin GPIO_PIN_7
+#define I2C_TOUCH_SDA_GPIO_Port GPIOB
+#define PWM_ARM_Pin GPIO_PIN_8
+#define PWM_ARM_GPIO_Port GPIOB
+#define I2C_NVIDIA_SDA_Pin GPIO_PIN_9
+#define I2C_NVIDIA_SDA_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
-#define	delay_3 10
-#define delay_2 60	
-#define delay_1 100		
-#define PWM_JXB_1 TIM3->CCR1
-#define PWM_JXB_2 TIM3->CCR2
-#define PWM_JXB_3 TIM4->CCR1
-#define PWM_JXB_4 TIM4->CCR2
-#define PWM_JXB_5 TIM4->CCR3
-#define PWM_JXB_6 TIM4->CCR4
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

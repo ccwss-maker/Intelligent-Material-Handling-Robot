@@ -1,4 +1,5 @@
 #include "PID.h"
+#include <math.h>
 
 #define LimitMax(input, max)   \
     {                          \
@@ -21,6 +22,9 @@
   * @param[in]      max_iout: pid最大积分输出
   * @retval         none
   */
+
+PID_ PID[2];
+
 void PID_init(PID_ *pid, uint8_t mode, float Kp, float Ki, float Kd, float max_out, float max_iout, float Integral_Separation_Threshold, float Dead_Zone)
 {
     pid->mode = mode;
@@ -85,4 +89,3 @@ void PID_clear(PID_ *pid)
     pid->out = pid->Pout = pid->Iout = pid->Dout = 0.0f;
     pid->fdb = pid->set = 0.0f;
 }
-

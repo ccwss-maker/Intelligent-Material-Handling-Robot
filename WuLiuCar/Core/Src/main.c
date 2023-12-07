@@ -18,8 +18,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "dma.h"
+#include "fatfs.h"
 #include "i2c.h"
+#include "sdio.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -27,13 +30,21 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <display.h>
-#include <key.h>
-#include <arm.h>
-#include <wheel.h>
-#include <ble.h>
-#include <imu.h>
-#include "PID.h"
+#include <ST7789V.h>
+#include <GT911.h>
+#include "stdio.h"
+#include "lvgl.h"
+#include "lv_port_disp.h"
+#include "lv_port_indev.h"
+#include "lv_port_fs.h"
+#include "lv_app.h"
+#include "imu.h"
+#include "ble.h"
+#include "wheel.h"
+#include "Arm.h"
+#include "Tracking.h"
+#include "Battery.h"
+#include "Motro_Control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,20 +58,13 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-extern imu_uart_ imu_uart;
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-extern u8g2_t u8g2;
-extern uint8_t page;
-extern mouse_information_ mouse_information[4];
-extern uint8_t receive[8];
-extern float w_pid;
-extern PID_	PID;
 
-uint8_t Tracking_Data[4]={0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,41 +75,76 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-int fputc(int ch, FILE *f)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  HAL_UART_Transmit(&huart6,(uint8_t *)&ch,1,HAL_MAX_DELAY);
-  return ch;
-}
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  
-{
-	if(huart->Instance == USART6)   
-	{
-		BLE_Receive();
+  if(GPIO_Pin == TOUCH_INT_Pin)
+  {
+		gt911_Scanf();
 	}
+  else if(GPIO_Pin == BLE_STATE_Pin)
+  {
+    BLE_State_Display();
+  }
 }
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if(htim==&htim1)
+	if(htim == &htim3)
 	{
-    key_test();
-		OLED_display();
-		
-		uint8_t data=0xFF;
-		HAL_I2C_Master_Transmit(&hi2c3,0x01<<1,&data,1,HAL_MAX_DELAY);
-		HAL_I2C_Master_Receive(&hi2c3,0x01<<1,&Tracking_Data[0],1,HAL_MAX_DELAY);
-		
-		HAL_I2C_Master_Transmit(&hi2c3,0x02<<1,&data,1,HAL_MAX_DELAY);
-		HAL_I2C_Master_Receive(&hi2c3,0x02<<1,&Tracking_Data[1],1,HAL_MAX_DELAY);
-		
-		HAL_I2C_Master_Transmit(&hi2c3,0x03<<1,&data,1,HAL_MAX_DELAY);
-		HAL_I2C_Master_Receive(&hi2c3,0x03<<1,&Tracking_Data[2],1,HAL_MAX_DELAY);
-		
-		HAL_I2C_Master_Transmit(&hi2c3,0x04<<1,&data,1,HAL_MAX_DELAY);
-		HAL_I2C_Master_Receive(&hi2c3,0x04<<1,&Tracking_Data[3],1,HAL_MAX_DELAY);
+		lv_tick_inc(1);
 	}
+	else if(htim == &htim4)
+	{
+    Motro_UART_Timeout();
+	}
+	else if(htim == &htim6)
+	{
+    Tracking_Transmit();
+		if(Arm.debug_sign)
+    {
+      // Arm_Angle_Check();
+      // Arm_Encoder_Check();
+    }
+	}
+	else if(htim == &htim14)
+	{
+		Battery.Tese_Sign = true;
+	}
+
+  Motor_Position_TIM_IT(htim);
 }
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+  if(hi2c == &hi2c3)
+  {
+    Tracking_Receive();
+  }
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c) 
+{
+  if(hi2c == &hi2c3)
+  {
+    Tracking_ErrorCallback(hi2c);
+  }
+}
+
+// void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+// {
+//   if(huart == &huart1)
+//   {
+//     // Motro_UART_Transmit_IT(); 
+//   }
+// }
+
+// void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+// {
+//   if(huart == &huart1)
+//   {
+//     // Motro_UART_Receive_IT(); 
+//   }
+// }
 /* USER CODE END 0 */
 
 /**
@@ -137,52 +176,78 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_I2C3_Init();
-  MX_TIM3_Init();
-  MX_TIM4_Init();
-  MX_USART1_UART_Init();
-  MX_USART6_UART_Init();
-  MX_SPI3_Init();
-  MX_TIM2_Init();
+  MX_I2C1_Init();
   MX_I2C2_Init();
+  MX_I2C3_Init();
+  MX_SPI1_Init();
   MX_USART2_UART_Init();
-  MX_TIM1_Init();
+  MX_USART3_UART_Init();
+  MX_USART6_UART_Init();
+  MX_TIM10_Init();
+  MX_TIM3_Init();
+  MX_TIM14_Init();
+  MX_ADC1_Init();
+  MX_SDIO_SD_Init();
+  MX_FATFS_Init();
+  MX_TIM6_Init();
+  MX_TIM4_Init();
+  MX_TIM13_Init();
+  MX_TIM7_Init();
+  MX_TIM9_Init();
+  MX_TIM11_Init();
+  MX_TIM12_Init();
   /* USER CODE BEGIN 2 */
-	///////////////////////////////OLED/////////////////////////////
-	u8g2_Setup_sh1106_128x64_noname_f(&u8g2,U8G2_R0,u8x8_byte_4wire_hw_spi,u8g2_gpio_and_delay_stm32);
-	u8g2_InitDisplay(&u8g2); 
-	u8g2_SetPowerSave(&u8g2,0);
-	///////////////////////////////////////////////   TIM1     /////////////////////	
-	HAL_TIM_Base_Start_IT(&htim1);
-	/////////////////////////////////////////////   TIM3_PWM   /////////////////////	
-	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_1);		
-	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_4);
-	/////////////////////////////////////////////   TIM4_PWM   /////////////////////	
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_1);		
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_4);
-
-	////////////////////////////////////////////    Arm_Init ///////////////////////
-	arm_Init();
-  ////////////////////////////////////////////    IMU_Init ///////////////////////
-	IMU_Init();
-	////////////////////////////////////////////    UART6_Init ///////////////////////
-	HAL_UART_Receive_DMA(&huart6,receive,5);
-  ////////////////////////////////////////////    Wheel_Init ///////////////////////
+	///////////////////////////////////   LVGL时钟   /////////////////////////////////
+	HAL_TIM_Base_Start_IT(&htim3);
+  /////////////////////////////////    LVGL_INIT  ///////////////////////////////
+	lv_init();
+	lv_port_disp_init();
+	lv_port_indev_init();
+  lv_fs_fatfs_init();
+	lv_demo_myself();
+  ///////////////////////////////////   电量棿测时钿   /////////////////////////////////
+	HAL_ADC_Start(&hadc1);
+  __HAL_TIM_CLEAR_IT(&htim14, TIM_IT_UPDATE);
+	HAL_TIM_Base_Start_IT(&htim14);
+  //////////////////////////////////   Motro_Control_Init   ///////////////////////////////
+  HAL_Delay(1000);
+  Motro_Control_Init();
+  __HAL_TIM_CLEAR_IT(&htim4, TIM_IT_UPDATE); /*清楚中断标志，防止直接进入中断*/
+  __HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
+  HAL_UART_Receive_DMA(&huart3, Motro_Control.UART.receive, Motro_UART_Buffer);
+  //////////////////////////////////   ARM_Init   ///////////////////////////////
+  __HAL_TIM_CLEAR_IT(&htim7, TIM_IT_UPDATE);
+  __HAL_TIM_CLEAR_IT(&htim9, TIM_IT_UPDATE);
+  __HAL_TIM_CLEAR_IT(&htim11, TIM_IT_UPDATE);
+  Arm_Init();
+  ////////////////////////////////   Wheel_Init   ///////////////////////////////
   Wheel_Init();
+  ////////////////////////////////////////////    IMU_Init ///////////////////////
+  IMU_Init();
+	HAL_UART_Receive_DMA(&huart2,(uint8_t*)imu_uart.receive,imu_uart_buffer);
+  //////////////////////////////////////////////    BLE_Init ///////////////////////
+  __HAL_UART_ENABLE_IT(&huart6, UART_IT_IDLE); 
+	HAL_UART_Receive_DMA(&huart6,(uint8_t*)ble_uart.receive,ble_uart_buffer);
+  ///////////////////////////////   循迹模块时钟   /////////////////////////////////
+  __HAL_TIM_CLEAR_IT(&htim6, TIM_IT_UPDATE);
+  HAL_TIM_Base_Start_IT(&htim6);
+  //////////////////////////////////   PID频率检测   ///////////////////////////////
+  __HAL_TIM_CLEAR_IT(&htim13, TIM_IT_UPDATE);
+  HAL_TIM_Base_Start(&htim13);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+	
   while (1)
   {
-		Control_NUM(mouse_information[2], page);
-		Control_Angle(mouse_information[0], page);
-		Control_SPD(mouse_information[1], page);
+		lv_task_handler();
     BLE_control();
+    IMU_Charting();
+    PID_Charting();
+    Tracking_Draw();
+		Battery_Test();
+    Motro_Control_Text();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -216,6 +281,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLN = 100;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLR = 2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();

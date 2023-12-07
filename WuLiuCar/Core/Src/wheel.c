@@ -1,334 +1,133 @@
-#include <wheel.h>
-#include <math.h> 
-#include <stdlib.h>
-#include <key.h>
-#include <usart.h>
-#include <imu.h>
+#include "wheel.h"
+#include "imu.h"
+#include "PID.h"
+#include "stdlib.h"
+#include "lv_app_wheel.h" 
+#include "Motro_Control.h"
 
-PID_	PID;
-float SPD_FL,SPD_FR,SPD_BL,SPD_BR;
-extern key_pressed_ key_pressed;	/*TL L BL T C B TR R BR*/
-extern message_imu_ message_imu;
-float w_pid;
-///*车轮控制*/
-//void Control_ALL(key_pressed_* key_pressed_p, mouse_information_ mouse_information, uint8_t page)
-//{
-//	if(page==4&&mouse_information.selected&&key_pressed_p->sign[1])
-//	{
-//		if(!mouse_information.mouse_2[0])
-//		{
-//			switch(mouse_information.mouse_2[1])
-//			{
-//				case 0:
-//					Control(&PWM_FL,key_pressed_p,mouse_information.mouse_1,-2000,2000);
-//					break;
-//				case 1:
-//					Control(&PWM_BL,key_pressed_p,mouse_information.mouse_1,-2000,2000);
-//					break;
-//			}
-//		}
-//		else
-//		{
-//			switch(mouse_information.mouse_2[1])
-//			{
-//				case 0:
-//					Control(&PWM_FR,key_pressed_p,mouse_information.mouse_1,-2000,2000);
-//					break;
-//				case 1:
-//					Control(&PWM_BR,key_pressed_p,mouse_information.mouse_1,-2000,2000);
-//					break;
-//			}
-//		}
-//	}
-//}
+Wheel_ Wheel;
 
-//void Control(int* wheel_p, key_pressed_* key_pressed_p, uint8_t mode, int min, uint16_t max)
-//{
-//	if(key_pressed_p->T[0])	Control_add(wheel_p, &key_pressed_p->T[0], mode, max);
-//	else if(key_pressed_p->B[0])	Control_sub(wheel_p, &key_pressed_p->B[0], mode, min);
-//	else if(key_pressed_p->L[0])	Control_sub(wheel_p, &key_pressed_p->L[0], mode, min);
-//	else if(key_pressed_p->R[0])	Control_add(wheel_p, &key_pressed_p->R[0], mode, max);
-//}
-
-//void Control_add(int* wheel_p, uint8_t* key, uint8_t mode, uint16_t max)
-//{
-//	switch(mode)
-//	{
-//		case 0:
-//			switch(*key)
-//			{
-//				case 1:
-//					if(*wheel_p+1 <= max)	*wheel_p +=1;
-//					else								*wheel_p = max;
-//					break;
-//				case 2:
-//					if(*wheel_p+1 <= max)	*wheel_p +=1;
-//					else								*wheel_p = max;
-//					break;
-//				case 3:
-//					if(*wheel_p+1 <= max)	*wheel_p +=1;
-//					else								*wheel_p = max;
-//					break;
-//			}
-//			break;
-//		case 1:
-//			if(*wheel_p+1 <= max)	*wheel_p +=10;
-//			else								*wheel_p = max;
-//			break;
-//		case 2:
-//			if(*wheel_p+1 <= max)	*wheel_p +=10;
-//			else								*wheel_p = max;
-//		case 3:
-//			if(*wheel_p+1 <= max)	*wheel_p +=10;
-//			else								*wheel_p = max;
-//	}
-//}
-//void Control_sub(int* wheel_p, uint8_t* key, uint8_t mode, int min)
-//{
-//	switch(mode)
-//	{
-//		case 0:
-//			switch(*key)
-//			{
-//				case 1:
-//					if(*wheel_p-1>=min)	*wheel_p -=1;
-//					else								*wheel_p = min;
-//					break;
-//				case 2:
-//					if(*wheel_p-1>=min)	*wheel_p -=1;
-//					else								*wheel_p = min;
-//					break;
-//				case 3:
-//					if(*wheel_p-1>=min)	*wheel_p -=1;
-//					else								*wheel_p = min;
-//					break;
-//			}
-//			break;
-//		case 1:
-//			if(*wheel_p-1>=min)	*wheel_p -=10;
-//			else								*wheel_p = min;
-//			break;
-//		case 2:
-//			if(*wheel_p-10>=min)	*wheel_p -=10;
-//			else								*wheel_p = min;
-//			break;
-//		case 3:
-//			if(*wheel_p-100>=min)	*wheel_p -=10;
-//			else								*wheel_p = min;
-//	}
-//}
-
-void Control_SPD(mouse_information_ mouse_information, uint8_t page)
+void Wheel_Group_Speed_Control(float v_x, float v_y, float w, uint8_t aacelerated)
 {
-	if(page==2)
+	Wheel.SPD.FL = (v_y+v_x-w*(Car_a+Car_b))/Wheel_r;
+	Wheel.SPD.FR = (v_y-v_x+w*(Car_a+Car_b))/Wheel_r;
+	Wheel.SPD.BL = (v_y-v_x-w*(Car_a+Car_b))/Wheel_r;
+	Wheel.SPD.BR = (v_y+v_x+w*(Car_a+Car_b))/Wheel_r;
+	if(Wheel.SPD.FL != Wheel.SPD.FL_last)
 	{
-		if(mouse_information.selected&&key_pressed.sign[1])
+		Motor_Speed_Control(1,Wheel.SPD.FL,aacelerated);
+		Wheel.SPD.FL_last = Wheel.SPD.FL;
+	}
+	if(Wheel.SPD.FR != Wheel.SPD.FR_last)
+	{
+		Motor_Speed_Control(2,Wheel.SPD.FR,aacelerated);
+		Wheel.SPD.FR_last = Wheel.SPD.FR;
+	}
+	if(Wheel.SPD.BL != Wheel.SPD.BL_last)
+	{
+		Motor_Speed_Control(3,Wheel.SPD.BL,aacelerated);
+		Wheel.SPD.BL_last = Wheel.SPD.BL;
+	}
+	if(Wheel.SPD.BR != Wheel.SPD.BR_last)
+	{
+		Motor_Speed_Control(4,Wheel.SPD.BR,aacelerated);
+		Wheel.SPD.BR_last = Wheel.SPD.BR;
+	}
+}
+
+float PID_Speed(float Speed)
+{
+	Speed = PID_calc(&PID[0],message_imu.Wz,Speed);//速度环
+	return Speed;
+}
+
+float PID_Position(float Angle)
+{
+	float Speed = PID_calc(&PID[1],message_imu.Yaw, Angle);
+	Speed = PID_Speed(Speed);
+	return Speed;
+}
+
+void PID_Debug_Speed(float Speed)
+{
+	Speed = PID_Speed(Speed);
+	Wheel_Group_Speed_Control(0, 0, Speed, 255);
+}
+
+void PID_Debug_Position(float Angle)
+{
+	float Speed = PID_Position(Angle);
+	Wheel_Group_Speed_Control(0, 0, Speed, 255);
+}
+
+void Wheel_Open()
+{
+	for(uint8_t i=1; i<5; i++)
+	{
+		Motor_Open(i);
+	}
+	Wheel.Close_sign=false;
+}
+
+void Wheel_Close()
+{
+	Wheel_Group_Closed_Loop_Control(0, 0, 0, 255);
+	// do{
+	// 	lv_task_handler();
+	// }while (message_imu.W>0.1);
+	for(uint8_t i=1; i<5; i++)
+	{
+		Motor_Close(i);
+	}
+	Wheel.Close_sign=true;
+}
+
+void Wheel_MStep_Set(uint8_t num)  //设置细分步数
+{	
+	for(uint8_t i=1; i<5; i++)
+	{
+		Motor_MStep_Set(i, num);
+	}
+}
+
+void Wheel_Group_Closed_Loop_Control(float v_x, float v_y, float w, uint8_t aacelerated)
+{
+	static float Yaw = 0;
+	if(Wheel.Close_sign == true)
+	{
+		Wheel_Open();
+	}
+	if(Wheel.PID_Sign == true)
+	{
+		if(w==0)
 		{
-			if(!mouse_information.mouse_2[0])
-			{
-				switch(mouse_information.mouse_2[1])
-				{
-					case 0:
-						Control(&SPD_FL,mouse_information.mouse_1,-25,25);
-						break;
-					case 1:
-						Control(&SPD_BL,mouse_information.mouse_1,-25,25);
-						break;
-				}
-			}
-			else
-			{
-				switch(mouse_information.mouse_2[1])
-				{
-					case 0:
-						Control(&SPD_FR,mouse_information.mouse_1,-25,25);
-						break;
-					case 1:
-						Control(&SPD_BR,mouse_information.mouse_1,-25,25);
-						break;
-				}
-			}
+			w = PID_Position(Yaw);
+		}
+		else
+		{
+	 		Yaw = message_imu.Yaw;
 		}
 	}
-	// Speed_pub(1,SPD_FL,10);
-	// Speed_pub(2,SPD_FR,10);
-	// Speed_pub(3,SPD_BL,10);
-	// Speed_pub(4,SPD_BR,10);
+	Wheel_Group_Speed_Control(v_x, v_y, w, aacelerated);
 }
 
-void Control(float* wheel_p, uint8_t mode, int min, int max)
-{
-	if(key_pressed.T[0])	Control_add(wheel_p, key_pressed.T[0], mode, max);
-	else if(key_pressed.B[0])	Control_sub(wheel_p, key_pressed.B[0], mode, min);
-	else if(key_pressed.L[0])	Control_sub(wheel_p, key_pressed.L[0], mode, min);
-	else if(key_pressed.R[0])	Control_add(wheel_p, key_pressed.R[0], mode, max);
-}
-
-void Control_add(float* wheel_p, uint8_t key, uint8_t mode, int max)
-{
-	switch(mode)
-	{
-		case 0:
-			switch(key)
-			{
-				case 1:
-					if(*wheel_p+PID_ADD_SUB_1 <= max)	*wheel_p +=PID_ADD_SUB_1;
-					else								*wheel_p = max;
-					break;
-				case 2:
-					if(*wheel_p+PID_ADD_SUB_2 <= max)	*wheel_p +=PID_ADD_SUB_2;
-					else								*wheel_p = max;
-					break;
-				case 3:
-					if(*wheel_p+PID_ADD_SUB_3 <= max)	*wheel_p +=PID_ADD_SUB_3;
-					else								*wheel_p = max;
-					break;
-			}
-			break;
-		case 1:
-			if(*wheel_p+PID_ADD_SUB_1 <= max)	*wheel_p +=PID_ADD_SUB_1;
-			else								*wheel_p = max;
-			break;
-		case 2:
-			if(*wheel_p+PID_ADD_SUB_2 <= max)	*wheel_p +=PID_ADD_SUB_2;
-			else								*wheel_p = max;
-		case 3:
-			if(*wheel_p+PID_ADD_SUB_3 <= max)	*wheel_p +=PID_ADD_SUB_3;
-			else								*wheel_p = max;
-	}
-}
-
-void Control_sub(float* wheel_p, uint8_t key, uint8_t mode, int min)
-{
-	switch(mode)
-	{
-		case 0:
-			switch(key)
-			{
-				case 1:
-					if(*wheel_p-PID_ADD_SUB_1>=min)	*wheel_p -=PID_ADD_SUB_1;
-					else								*wheel_p = min;
-					break;
-				case 2:
-					if(*wheel_p-PID_ADD_SUB_2>=min)	*wheel_p -=PID_ADD_SUB_2;
-					else								*wheel_p = min;
-					break;
-				case 3:
-					if(*wheel_p-PID_ADD_SUB_3>=min)	*wheel_p -=PID_ADD_SUB_3;
-					else								*wheel_p = min;
-					break;
-			}
-			break;
-		case 1:
-			if(*wheel_p-PID_ADD_SUB_1>=min)	*wheel_p -=PID_ADD_SUB_1;
-			else								*wheel_p = min;
-			break;
-		case 2:
-			if(*wheel_p-PID_ADD_SUB_2>=min)	*wheel_p -=PID_ADD_SUB_2;
-			else								*wheel_p = min;
-			break;
-		case 3:
-			if(*wheel_p-PID_ADD_SUB_3>=min)	*wheel_p -=PID_ADD_SUB_3;
-			else								*wheel_p = min;
-	}
-}
-
-void Speed_pub(uint8_t address, int16_t speed, uint8_t aacelerated)/*1为正方向，-1为反方向*/
-{
-	int sign=1;
-	if(address%2==0)	sign=-1;
-	uint8_t data[6]={0};
-	data[0]=address;
-	data[1]=0xF6;
-	if(sign*speed>0)	data[2]=0x10;
-	else				data[2]=0x00;
-	data[2]|=abs(speed)>>8;
-	data[3]=abs(speed);
-	data[4]=aacelerated;
-	data[5]=0x6B;
-	HAL_UART_Transmit(&huart1,data,6,HAL_MAX_DELAY);
-	HAL_Delay(1);
-}
-
-//void wheel_control0()
-//{		
-//	if(fabs(message_imu.Yaw)>1)
-//	while((&PID)->finish_sign!=1)
-//	{
-//		IMU_Receive();
-//		(&PID)->finish_sign=0;
-//		Control_Mecanum(0, 0, 0,255);
-//	}
-//}
-
-void Control_Mecanum(float v_x, float v_y, float w, uint8_t aacelerated)
-{
-	wheel_open();
-	if(w==0)
-	{
-		w=PID_calc(&PID,message_imu.Yaw,0);
-	}
-	else
-	{
-		IMU_Z_Init();
-	}
-	
-	SPD_FL = (v_y+v_x-w*(Car_a+Car_b))/Wheel_r;
-	SPD_FR = (v_y-v_x+w*(Car_a+Car_b))/Wheel_r;
-	SPD_BL = (v_y-v_x-w*(Car_a+Car_b))/Wheel_r;
-	SPD_BR = (v_y+v_x+w*(Car_a+Car_b))/Wheel_r;
-	Speed_pub(1,SPD_FL,aacelerated);
-	Speed_pub(2,SPD_FR,aacelerated);
-	Speed_pub(3,SPD_BL,aacelerated);
-	Speed_pub(4,SPD_BR,aacelerated);
-//	printf("%f,%f\n",w,message_imu.Yaw);
-}
-
-void wheel_open()
-{
-	uint8_t data[4]={0,0xF3,0X01,0X6B};
-	HAL_UART_Transmit(&huart1,data,4,HAL_MAX_DELAY);
-	HAL_Delay(1);
-}
-
-void wheel_close()
-{
-//	if(fabs(message_imu.Yaw)>PID.Dead_Zone||message_imu.W>5)
-	{
-		while(fabs(message_imu.Yaw)>PID.Dead_Zone||message_imu.W>5)
-		{
-			Control_Mecanum(0, 0, 0,255);
-		}
-		PID_clear(&PID);
-		uint8_t data[4]={0,0xF3,0X00,0X6B};
-		HAL_UART_Transmit(&huart1,data,4,HAL_MAX_DELAY);
-		HAL_Delay(1);
-	}
-}
-
-void Set_MStep(uint8_t address, uint8_t num)  //设置细分步数
-{
-	uint8_t data[4]={0};
-	data[0]=address;
-	data[1]=0x84;
-	data[2]=num;
-	data[3]=0x6B;
-	HAL_UART_Transmit(&huart1,data,4,HAL_MAX_DELAY);
-	HAL_Delay(1);
-}
 void Wheel_Init()
 {
-	wheel_close();
-	Set_MStep(0,0);
-	PID_init(&PID, PID_POSITION, 0.1, 0, 0.02, 20, 20, 10, 3);
+	Wheel.SPD.FL=0;
+	Wheel.SPD.FR=0;
+	Wheel.SPD.BL=0;
+	Wheel.SPD.BR=0;
+	Wheel.Close_sign=false;
+	Wheel.PID_Sign=true;
+	Wheel.debug_sign=false;
+	// Wheel_Close();
+	// Wheel_MStep_Set(0);
+
+	PID[0].mode = PID_DELTA;
+	PID[1].mode = PID_POSITION;
+		
+	// PID_init(&PID[0], PID_DELTA, 1.9, 0.2, 4.5, 11, 11, 11, 0.1);    //速度
+	// PID_init(&PID[1], PID_POSITION, 0.025,0.0005,0.195,0.35,3,3,1); //位置
+
 }
 
-void Wheel_PID_BLE()
-{
-	uint16_t Yaw = (message_imu.Yaw+180)*10;
-	uint8_t data[3]={0};
-	data[0]=0x41;
-	data[1]=(uint8_t)(Yaw>>8);
-	data[2]=(uint8_t)Yaw;
-	HAL_UART_Transmit(&huart6,(uint8_t*)data,3,HAL_MAX_DELAY);
-}

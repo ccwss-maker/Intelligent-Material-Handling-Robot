@@ -1,319 +1,100 @@
-#include <arm.h>
+#include "Arm.h"
 
-arm_ arm={{0,0,-150,150},{96,76,20,150},{40,0,40,140}};
-float l1=87.6,l2=62.5;
-extern key_pressed_ key_pressed;	/*TL L BL T C B TR R BR*/
+Arm_ Arm;
 
-
-void Control_NUM(mouse_information_ mouse_information, uint8_t page)
+void Arm_Open()
 {
-	if(page==3&&mouse_information.selected&&key_pressed.sign[1])
-	{
-		if(!mouse_information.mouse_2[0])
-		{
-			switch(mouse_information.mouse_2[1])
-			{
-				case 0:
-					Control_NUM_(&PWM_JXB_1,mouse_information.mouse_1,1300,1850);
-					break;
-				case 1:
-					Control_NUM_(&PWM_JXB_2,mouse_information.mouse_1,500,2500);
-					break;
-				case 2:
-					Control_NUM_(&PWM_JXB_3,mouse_information.mouse_1,500,2200);
-					break;
-			}
-		}
-		else
-		{
-			switch(mouse_information.mouse_2[1])
-			{
-				case 0:
-					Control_NUM_(&PWM_JXB_4,mouse_information.mouse_1,800,2500);
-					break;
-				case 1:
-					Control_NUM_(&PWM_JXB_5,mouse_information.mouse_1,500,2500);
-					break;
-				case 2:
-					Control_NUM_(&PWM_JXB_6,mouse_information.mouse_1,500,2500);
-					break;
-			}
-		}
-	}
+    Motor_Open(Arm_Rear_Address);
+    Motor_Open(Arm_Front_Address);
+    Motor_Open(Arm_Pedestal_Address);
+	Arm.Close_sign=false;
 }
 
-void Control_NUM_(volatile uint32_t* arm_p, uint8_t mode, int min, int max)
+void Arm_Close()
 {
-	if(key_pressed.T[0])			Control_NUM_add_sub(arm_p, key_pressed.T[0], mode, max,1);
-	else if(key_pressed.B[0])	Control_NUM_add_sub(arm_p, key_pressed.B[0], mode, min,-1);
-	else if(key_pressed.L[0])	Control_NUM_add_sub(arm_p, key_pressed.L[0], mode, min,-1);
-	else if(key_pressed.R[0])	Control_NUM_add_sub(arm_p, key_pressed.R[0], mode, max,1);
+    Motor_Close(Arm_Rear_Address);
+    Motor_Close(Arm_Front_Address);
+    Motor_Close(Arm_Pedestal_Address);
+	Arm.Close_sign=true;
 }
 
-void Control_NUM_add_sub(volatile uint32_t* arm_p, uint8_t key, uint8_t mode, int max_min, int sign)
-{
-	switch(mode)
-	{
-		case 0:
-			switch(key)
-			{
-				case 1:
-					if(sign*(*arm_p+sign*ARM_ADD_SUB_1-max_min) <= 0)	*arm_p +=sign*ARM_ADD_SUB_1;
-					else								*arm_p = max_min;
-					break;
-				case 2:
-					if(sign*(*arm_p+sign*ARM_ADD_SUB_2-max_min) <= 0)	*arm_p +=sign*ARM_ADD_SUB_2;
-					else								*arm_p = max_min;
-					break;
-				case 3:
-					if(sign*(*arm_p+sign*ARM_ADD_SUB_3-max_min) <= 0)	*arm_p +=sign*ARM_ADD_SUB_3;
-					else								*arm_p = max_min;
-			}
-			break;
-		case 1:
-			if(sign*(*arm_p+sign*ARM_ADD_SUB_1-max_min) <= 0)	*arm_p +=sign*ARM_ADD_SUB_1;
-			else								*arm_p = max_min;
-			break;
-		case 2:
-			if(sign*(*arm_p+sign*ARM_ADD_SUB_2-max_min) <= 0)	*arm_p +=sign*ARM_ADD_SUB_2;
-			else								*arm_p = max_min;
-			break;
-		case 3:
-			if(sign*(*arm_p+sign*ARM_ADD_SUB_3-max_min) <= 0)	*arm_p +=sign*ARM_ADD_SUB_3;
-			else								*arm_p = max_min;
-	}
-}
-#include <wheel.h>
-static uint8_t sign__[6]={0};
-extern PID_	PID;
-void Control_Angle(mouse_information_ mouse_information, uint8_t page)
-{
-	static bool sign=true;
-	if(sign)
-	{
-		Angle_calculate();
-		sign=false;
-	}
-	if(page==1)
-	{
-		if(mouse_information.selected&&key_pressed.sign[1])
-		{
-			if(!mouse_information.mouse_2[0])
-			{
-				switch(mouse_information.mouse_2[1])
-				{
-					case 0:
-						if(sign__[0]==0&&key_pressed.T[0])	
-						{
-							PID.Kp+=0.01;
-							sign__[0]=1;
-						}
-						else if(sign__[1]==0&&key_pressed.B[0])	
-						{
-							PID.Kp-=0.01;
-							sign__[1]=1;
-						}
-						
-						if(key_pressed.T[0]==0)	
-						{
-							sign__[0]=0;
-						}
-						
-						if(key_pressed.B[0]==0)	
-						{
-							sign__[1]=0;
-						}
-//						Control_Angle_(&arm.x, &arm.y, &arm.z, mouse_information.mouse_1);
-						break;
-					case 1:
-						if(sign__[0]==0&&key_pressed.T[0])	
-						{
-							PID.Ki+=0.001;
-							sign__[0]=1;
-						}
-						else if(sign__[1]==0&&key_pressed.B[0])	
-						{
-							PID.Ki-=0.001;
-							sign__[1]=1;
-						}
-						
-						if(key_pressed.T[0]==0)	
-						{
-							sign__[0]=0;
-						}
-						
-						if(key_pressed.B[0]==0)	
-						{
-							sign__[1]=0;
-						}
-//						Control_Angle_(&arm.y, &arm.z, &arm.x, mouse_information.mouse_1);
-						break;
-					case 2:
-						if(sign__[0]==0&&key_pressed.T[0])	
-						{
-							PID.Kd+=0.01;
-							sign__[0]=1;
-						}
-						else if(sign__[1]==0&&key_pressed.B[0])	
-						{
-							PID.Kd-=0.01;
-							sign__[1]=1;
-						}
-						
-						if(key_pressed.T[0]==0)	
-						{
-							sign__[0]=0;
-						}
-						
-						if(key_pressed.B[0]==0)	
-						{
-							sign__[1]=0;
-						}
-//						Control_Angle_(&arm.z, &arm.y, &arm.x, mouse_information.mouse_1);
-						break;
-				}
-			}
-			Angle_calculate();
-			Angle_move();
-		}
-	}
-}
-
-void Control_Angle_(value_* v1, value_* v2, value_* v3, uint8_t mode)
-{
-	if(key_pressed.T[0])			Control_Angle_add_sub(v1, v2, v3, key_pressed.T[0], mode, Control_Angle_add_);
-	else if(key_pressed.B[0])	Control_Angle_add_sub(v1, v2, v3, key_pressed.B[0], mode, Control_Angle_sub_);
-	else if(key_pressed.R[0])	Control_Angle_add_sub(v1, v2, v3, key_pressed.R[0], mode, Control_Angle_sub_);
-	else if(key_pressed.L[0])	Control_Angle_add_sub(v1, v2, v3, key_pressed.L[0], mode, Control_Angle_add_);
-}
-
-void Control_Angle_add_sub(value_* v1, value_* v2, value_* v3, uint8_t key, uint8_t mode,void (*p)(value_* v1, value_* v2, value_* v3, int step, int delay))
-{
-	switch(mode)
-	{
-		case 0:
-			switch(key)
-			{
-				case 1:
-					(*p)(v1, v2, v3, 1, delay_1);
-					break;
-				case 2:
-					(*p)(v1, v2, v3, 1, delay_2);
-					break;
-				case 3:
-					(*p)(v1, v2, v3, 1, delay_3);
-			}
-			break;
-		case 1:
-			(*p)(v1, v2, v3, 1, delay_1);
-			break;
-		case 2:
-			(*p)(v1, v2, v3, 1, delay_2);
-			break;
-		case 3:
-			(*p)(v1, v2, v3, 1, delay_3);
-	}
-}
-
-void Control_Angle_add_(value_* v1, value_* v2, value_* v3, int step, int delay)
-{
-	if(v1->value-v1->increment+step <= v1->max)
-	{
-		v1->value +=step;
-		while(pow(pow(v1->value-v1->increment,2)+pow(v2->value-v2->increment,2),0.5)>(l1+l2))
-		{
-			if(v2->value-v2->increment-1>v2->min)	v2->value-=1;
-			else break;
-		}
-		while(pow(pow(v1->value-v1->increment,2)+pow(v3->value-v3->increment,2),0.5)>(l1+l2))
-		{
-			if(v3->value-v3->increment-1>v3->min)	v3->value-=1;
-			else break;
-		}
-		HAL_Delay(delay);
-	}	
-}
-
-void Control_Angle_sub_(value_* v1, value_* v2, value_* v3, int step, int delay)
+void Arm_MStep_Set(uint16_t num)  //设置细分步数 0：256细分
 {	
-	if(v1->value-v1->increment-step >= v1->min)
-	{
-		v1->value -=step;
-		HAL_Delay(delay);
-	}
+    if(num >= 256)
+        num = 0;
+
+    Motor_MStep_Set(Arm_Rear_Address, num);
+    Motor_MStep_Set(Arm_Front_Address, num);
+    Motor_MStep_Set(Arm_Pedestal_Address, num);
 }
 
-void Angle_calculate()
+void Arm_Set_0()  //设置零点
+{	
+    Motor_Set_0(Arm_Rear_Address);
+    Motor_Set_0(Arm_Front_Address);
+    Motor_Set_0(Arm_Pedestal_Address);
+}
+
+void Arm_Angle_Check()
 {
-	float x = arm.x.value-arm.x.increment;
-	float y = arm.y.value-arm.y.increment;
-	float z = arm.z.value-arm.z.increment;
-	float x_ =pow(pow(x,2)+pow(y,2),0.5);
-	arm.a=acos((pow(l1,2)-pow(l2,2)+pow(x_,2)+pow(z,2))/(2*l1*pow(pow(x_,2)+pow(z,2),0.5)))+atan(z/x_);
-	arm.b=arm.a-asin((z-l1*sin(arm.a))/l2);
-	arm.c=asin((z-l1*sin(arm.a))/l2);
-	arm.d=atan(x/y);
-	arm.a*=180/3.14;
-	arm.b*=180/3.14;
-	arm.c*=180/3.14;
-	arm.d*=180/3.14;
+    Motro_Position_Check(Arm_Rear_Address);
+    Motro_Position_Check(Arm_Front_Address);
+    Motro_Position_Check(Arm_Pedestal_Address);
 }
 
-void Angle_move_(volatile uint32_t* arm_p, float angle, int incremental)
+void Arm_Encoder_Check()
 {
-	*arm_p=(int)(angle/180*2000+incremental);
+    Motro_Encoder_Check(Arm_Rear_Address);
+    Motro_Encoder_Check(Arm_Front_Address);
+    Motro_Encoder_Check(Arm_Pedestal_Address);
 }
 
-void Angle_move()
+void Arm_Position_Control(uint8_t Address, int8_t direction, uint16_t speed, uint8_t aacelerated, float angle, bool Angle_Check_Sign)
 {
-	Angle_move_(&PWM_JXB_5,arm.d,1900);
-	Angle_move_(&PWM_JXB_4,arm.a,500);
-	Angle_move_(&PWM_JXB_3,arm.b,580);
-	Angle_move_(&PWM_JXB_2,arm.c,1350);
+    if(Address == Arm_Rear_Address || Address == Arm_Front_Address )
+        Motor_Absolute_Control(Address, direction, speed, aacelerated, angle, Angle_Check_Sign, Arm_Subdivision_Step, Arm_Reduction_Ratio);
+    else if(Address == Arm_Pedestal_Address)
+        Motor_Absolute_Control(Address, direction, speed, aacelerated, angle, Angle_Check_Sign, Arm_Subdivision_Step, 1);
 }
 
-void Control_Angle_ble(uint8_t change)
+void Arm_Absolute_Angle_To_0(uint8_t Address)
 {
-	switch(change)
-	{
-		case 0:
-			Control_Angle_(&arm.x, &arm.y, &arm.z, 0);
-			break;
-		case 1:
-			Control_Angle_(&arm.y, &arm.z, &arm.x, 0);
-			break;
-		case 2:
-			Control_Angle_(&arm.z, &arm.y, &arm.x, 0);
-			break;
-	}
-	Angle_calculate();
-	Angle_move();
+    uint8_t ID = Address - 5;
+    if(Address == Arm_Rear_Address || Address == Arm_Front_Address )
+        Motor_Absolute_Angle_To_0(Address, Clockwise, Arm_Velocity, Arm_Accelerate, Arm.Limit_Angle_To_0[ID], Arm_Subdivision_Step, Arm_Reduction_Ratio);
+    else if(Address == Arm_Pedestal_Address)
+        Motor_Absolute_Angle_To_0(Address, Clockwise, Arm_Velocity, Arm_Accelerate, Arm.Limit_Angle_To_0[ID], Arm_Subdivision_Step, 1);
 }
 
-void arm_Init()
+void Arm_Absolute_Angle_To_0_All()
 {
-	arm.x.value=0;
-	arm.y.value=96;
-	arm.z.value=40;
-	Angle_calculate();
-	Angle_move();
-	arm_open();
+    uint8_t num = 0;
+    uint16_t time_ms = 0;
+    do{
+        Arm_Absolute_Angle_To_0(Arm_Rear_Address);
+        Arm_Absolute_Angle_To_0(Arm_Front_Address);
+        Arm_Absolute_Angle_To_0(Arm_Pedestal_Address);
+        do{
+            HAL_Delay(1);
+            time_ms++;
+        }
+        while(time_ms < 2000 && (Motro_Control.Angle_Control.Done_sign[Arm_Rear_Address-1] != true || Motro_Control.Angle_Control.Done_sign[Arm_Rear_Address-1] != true || Motro_Control.Angle_Control.Done_sign[Arm_Pedestal_Address-1] != true));
+        if(Motro_Control.Angle_Control.Done_sign[Arm_Rear_Address-1] && Motro_Control.Angle_Control.Done_sign[Arm_Rear_Address-1] && Motro_Control.Angle_Control.Done_sign[Arm_Pedestal_Address-1])
+            break;
+        num++;
+    }while(num < 5);
+    Arm_Set_0();
+    Arm_Angle_Check();
 }
 
-void arm_close()
+void Arm_Init()
 {
-	PWM_JXB_1=1300;
+    Arm.Limit_Angle_To_0[0] = Rear_Angle_To_0_Set;
+    Arm.Limit_Angle_To_0[1] = Front_Angle_To_0_Set;
+
+    Arm_MStep_Set(Arm_Subdivision_Step);
+//    Arm_Absolute_Angle_To_0_All();
 }
 
-void arm_open()
-{
-	PWM_JXB_1=1700;
-}
 
-//void Control_Angle_(value_* v1, value_* v2, value_* v3, uint8_t mode)
-//{
-//	if(key_pressed.T[0])			Control_Angle_add_sub(v1, v2, v3, key_pressed.T[0], mode, Control_Angle_add_);
-//	else if(key_pressed.B[0])	Control_Angle_add_sub(v1, v2, v3, key_pressed.B[0], mode, Control_Angle_sub_);
-//	else if(key_pressed.R[0])	Control_Angle_add_sub(v1, v2, v3, key_pressed.R[0], mode, Control_Angle_sub_);
-//	else if(key_pressed.L[0])	Control_Angle_add_sub(v1, v2, v3, key_pressed.L[0], mode, Control_Angle_add_);
-//}
+
