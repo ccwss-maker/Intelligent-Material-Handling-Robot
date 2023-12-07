@@ -38,11 +38,19 @@ typedef struct{
 	bool break_sign;
 }ble_data_;
 
+typedef struct{
+	bool Control_Sign;
+	int x;
+	int y;
+	int z;
+}BLE_Arm_;
+
 void BLE_Receive();
 void BLE_control(void);
 void BLE_State_Display();
-// void BLE_arm_control(void);
-
+void BLE_Arm_Control(void);
+void BLE_Init();
 extern ble_data_ ble_data;
 extern ble_uart_ ble_uart;
+extern BLE_Arm_ BLE_Arm;
 #endif

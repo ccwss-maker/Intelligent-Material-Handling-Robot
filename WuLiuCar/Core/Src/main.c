@@ -97,13 +97,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
     Motro_UART_Timeout();
 	}
+  else if(htim == &htim5)
+  {
+    BLE_Arm.Control_Sign = true;
+  }
 	else if(htim == &htim6)
 	{
     Tracking_Transmit();
 		if(Arm.debug_sign)
     {
-      // Arm_Angle_Check();
-      // Arm_Encoder_Check();
+			//Arm_Angle_Check();
+			//Arm_Encoder_Check();
     }
 	}
 	else if(htim == &htim14)
@@ -180,6 +184,7 @@ int main(void)
   MX_I2C2_Init();
   MX_I2C3_Init();
   MX_SPI1_Init();
+  MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   MX_USART6_UART_Init();
@@ -196,9 +201,12 @@ int main(void)
   MX_TIM9_Init();
   MX_TIM11_Init();
   MX_TIM12_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
 	///////////////////////////////////   LVGL时钟   /////////////////////////////////
 	HAL_TIM_Base_Start_IT(&htim3);
+  ///////////////////////////////////   机械臂计算初始化   ///////////////////////////
+  Arm_Angle_Calculate_Init();
   /////////////////////////////////    LVGL_INIT  ///////////////////////////////
 	lv_init();
 	lv_port_disp_init();
@@ -207,14 +215,13 @@ int main(void)
 	lv_demo_myself();
   ///////////////////////////////////   电量棿测时钿   /////////////////////////////////
 	HAL_ADC_Start(&hadc1);
-  __HAL_TIM_CLEAR_IT(&htim14, TIM_IT_UPDATE);
 	HAL_TIM_Base_Start_IT(&htim14);
   //////////////////////////////////   Motro_Control_Init   ///////////////////////////////
   HAL_Delay(1000);
   Motro_Control_Init();
-  __HAL_TIM_CLEAR_IT(&htim4, TIM_IT_UPDATE); /*清楚中断标志，防止直接进入中断*/
-  __HAL_UART_ENABLE_IT(&huart3, UART_IT_IDLE);
-  HAL_UART_Receive_DMA(&huart3, Motro_Control.UART.receive, Motro_UART_Buffer);
+  __HAL_TIM_CLEAR_IT(&htim4, TIM_IT_UPDATE); /*清楚中断标志，防止直接进入中�??????*/
+  __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
+  HAL_UART_Receive_DMA(&huart1, Motro_Control.UART.receive, Motro_UART_Buffer);
   //////////////////////////////////   ARM_Init   ///////////////////////////////
   __HAL_TIM_CLEAR_IT(&htim7, TIM_IT_UPDATE);
   __HAL_TIM_CLEAR_IT(&htim9, TIM_IT_UPDATE);
@@ -226,14 +233,19 @@ int main(void)
   IMU_Init();
 	HAL_UART_Receive_DMA(&huart2,(uint8_t*)imu_uart.receive,imu_uart_buffer);
   //////////////////////////////////////////////    BLE_Init ///////////////////////
+  BLE_Init();
   __HAL_UART_ENABLE_IT(&huart6, UART_IT_IDLE); 
 	HAL_UART_Receive_DMA(&huart6,(uint8_t*)ble_uart.receive,ble_uart_buffer);
   ///////////////////////////////   循迹模块时钟   /////////////////////////////////
   __HAL_TIM_CLEAR_IT(&htim6, TIM_IT_UPDATE);
   HAL_TIM_Base_Start_IT(&htim6);
-  //////////////////////////////////   PID频率检测   ///////////////////////////////
-  __HAL_TIM_CLEAR_IT(&htim13, TIM_IT_UPDATE);
-  HAL_TIM_Base_Start(&htim13);
+  // //////////////////////////////////   PID频率�????�????   ///////////////////////////////
+  // __HAL_TIM_CLEAR_IT(&htim13, TIM_IT_UPDATE);
+  // HAL_TIM_Base_Start(&htim13);
+  //////////////////////////////////   蓝牙控制时钟   ///////////////////////////////
+  __HAL_TIM_CLEAR_IT(&htim5, TIM_IT_UPDATE);
+  //////////////////////////////////       PWM       ///////////////////////////////
+  HAL_TIM_PWM_Start(&htim10,TIM_CHANNEL_1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -243,11 +255,13 @@ int main(void)
   {
 		lv_task_handler();
     BLE_control();
+    BLE_Arm_Control();
     IMU_Charting();
     PID_Charting();
     Tracking_Draw();
 		Battery_Test();
     Motro_Control_Text();
+    Arm_Symbol_Refresh();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

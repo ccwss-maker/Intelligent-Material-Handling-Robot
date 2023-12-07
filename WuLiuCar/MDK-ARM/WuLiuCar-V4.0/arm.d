@@ -41,4 +41,5 @@ wuliucar-v4.0/arm.o: ..\Core\Src\Arm.c ..\Core\Inc\Arm.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_uart.h \
   D:\SystemData\Program\Work\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdbool.h \
   ..\Core\Inc\Motro_Control.h ..\Core\Inc\Motro_Control_Queul.h \
-  ..\Core\Inc\usart.h
+  ..\Core\Inc\usart.h \
+  D:\SystemData\Program\Work\Keil_v5\ARM\ARMCLANG\Bin\..\include\math.h

@@ -271,4 +271,4 @@ wuliucar-v4.0/lv_app_arm.o: ..\Core\lvgl\myself\lv_app_arm.c \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim_ex.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_uart.h \
   ..\Core\Inc\Motro_Control.h ..\Core\Inc\Motro_Control_Queul.h \
-  ..\Core\Inc\usart.h
+  ..\Core\Inc\usart.h ..\Core\Inc\ble.h

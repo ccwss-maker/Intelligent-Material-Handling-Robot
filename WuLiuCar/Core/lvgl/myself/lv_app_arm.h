@@ -4,8 +4,23 @@
 #include "lv_app_wheel.h"
 
 typedef struct{
-    lv_obj_t *sw_debug;
-    lv_obj_t *sw_power;
+    lv_obj_t *btn_rst;
+    lv_obj_t *btn_Claw;
+    lv_obj_t *label_Angle_X;
+    lv_obj_t *label_Angle_Y;
+    lv_obj_t *label_Angle_Z;
+    lv_obj_t *label_Label_X;
+    lv_obj_t *label_Label_Y;
+    lv_obj_t *label_Label_Z;
+    lv_obj_t *Symbol_X;
+    lv_obj_t *Symbol_Y;
+    lv_obj_t *Symbol_Z;
+    slider_kid_ slider_X;
+    slider_kid_ slider_Y;
+    slider_kid_ slider_Z;
+}Arm_Motor_Control_;
+
+typedef struct{
     lv_obj_t *btn_rst;
     lv_obj_t *btn_set_0;
     lv_obj_t *label_Angle_Rear_Arm;
@@ -23,11 +38,16 @@ typedef struct{
 }Arm_Motor_Debug_;
 
 typedef struct{
+    lv_obj_t *sw_debug;
+    lv_obj_t *sw_power;
+    Arm_Motor_Control_ Motor_Control;
     Arm_Motor_Debug_ Motor_Debug;
 }lv_obj_ARM_;
 
-void ARM_create(lv_obj_t * parent);
-void Arm_Symbol_Set(uint8_t Address, const void *src);
+void lv_Arm_Coord_Control();
+void lv_Arm_Coord_Control_Reset();
+void ARM_create(lv_obj_t *parent);
+void Arm_Symbol_Refresh();
 
 extern lv_obj_ARM_ lv_obj_ARM;
 #endif

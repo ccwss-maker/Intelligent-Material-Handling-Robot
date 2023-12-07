@@ -1,21 +1,16 @@
 #include "ble.h"
-#include "lv_app.h"
-#include "stdio.h"
-#include "wheel.h"
+#include "tim.h"
+#include "Arm.h"
 #include "PID.h"
+#include "wheel.h"
+#include "lv_app.h"
 #include "lv_app_wheel.h"
 #include "lv_app_pid.h"
-//#include <arm.h>
-//#include <key.h>
+#include "stdio.h"
 ble_data_ ble_data;
 ble_uart_ ble_uart;
-// extern uint8_t Wheel_PID_Sign;
-// extern key_pressed_ key_pressed;	/*TL L BL T C B TR R BR*/
-// extern arm_ arm;
-// #if PID_Config_Mode
-// extern PID_	PID[2];
-// extern float www;
-// #endif
+BLE_Arm_ BLE_Arm;
+
 void BLE_Receive()
 {
     if(ble_uart.receive[0]!=0x66)	return;
@@ -59,7 +54,7 @@ void BLE_Receive()
 	}
 	ble_data.break_sign=true;
     
-    uint8_t data[10]={0};
+    char data[10]={0};
     sprintf(data,"0x%02x",ble_data.digital_data);
 	lv_label_set_text(lv_obj_BLE.lable.digital_data,data);
     sprintf(data,"%d",ble_data.L_X);
@@ -76,83 +71,70 @@ void BLE_Receive()
 	lv_label_set_text(lv_obj_BLE.lable.R_2,data);
 }
 
-// void BLE_arm_control()
-// {
-// 	if(ble_data.R_X>100)	
-// 	{
-// 		key_pressed.B[0]=2;
-// 		Control_Angle_ble(0);
-// 		key_pressed.B[0]=0;
-// 	}
-// 	else if(ble_data.R_X<-100)
-// 	{
-// 		key_pressed.T[0]=2;
-// 		Control_Angle_ble(0);
-// 		key_pressed.T[0]=0;
-// 	}
-	
-// 	if(ble_data.R_Y>100)	
-// 	{
-// 		key_pressed.T[0]=3;
-// 		Control_Angle_ble(1);
-// 		key_pressed.T[0]=0;
-// 	}
-// 	else if(ble_data.R_Y<-100)
-// 	{
-// 		key_pressed.B[0]=3;
-// 		Control_Angle_ble(1);
-// 		key_pressed.B[0]=0;
-// 	}
-	
-// 	if(ble_data.L_1==1&&ble_data.R_1==0)	
-// 	{
-// 		key_pressed.T[0]=3;
-// 		Control_Angle_ble(2);
-// 		key_pressed.T[0]=0;
-// 	}
-// 	else if(ble_data.R_1==1&&ble_data.L_1==0)
-// 	{
-// 		key_pressed.B[0]=3;
-// 		Control_Angle_ble(2);
-// 		key_pressed.B[0]=0;
-// 	}
-	
-// 	if(ble_data.A==1&&ble_data.B==0)
-// 	{
-// 		arm_open();
-// 	}
-// 	else if(ble_data.A==0&&ble_data.B==1)
-// 	{
-// 		arm_close();
-// 	}
-	
-// 	if(ble_data.R_3==1)
-// 	{
-// 		arm_Init();
-// 	}
-// }
-
-void BLE_value_control()
+void BLE_Arm_Control()
 {
-	if(ble_data.L_3==1)
+	if(BLE_Arm.Control_Sign)
 	{
-		if(ble_data.L_Y>1000)
-		{
-			Wheel.debug_sign=false;
-        	Wheel_slider_clear();
-			lv_obj_clear_state(lv_obj_WHEEL.sw_debug,LV_STATE_CHECKED);
-			lv_obj_clear_state(lv_obj_WHEEL.sw_power,LV_STATE_CHECKED);
-			lv_obj_WHEEL_Control(false,false);
-        	Wheel_Close();
-		}
-		else if(ble_data.L_Y<-1000)
-		{
-			Wheel.debug_sign=true;
-			lv_obj_add_state(lv_obj_WHEEL.sw_debug,LV_STATE_CHECKED);
-			lv_obj_WHEEL_Control(true,false);
-		}
-	}
+		bool sign = false;
 
+		if(ble_data.R_X != 0)	
+		{
+			BLE_Arm.x += (int)(ble_data.R_X/300.0);
+			if(BLE_Arm.x < Arm.Range.X_Min)	BLE_Arm.x = (int)Arm.Range.X_Min;
+			else if(BLE_Arm.x > Arm.Range.X_Max)	BLE_Arm.x = (int)Arm.Range.X_Max;
+			sign = true;
+		}
+		
+		if(ble_data.R_Y != 0)	
+		{
+			BLE_Arm.y += (int)(ble_data.R_Y/300.0);
+			if(BLE_Arm.y < Arm.Range.Y_Min)	BLE_Arm.y = (int)Arm.Range.Y_Min;
+			else if(BLE_Arm.y > Arm.Range.Y_Max)	BLE_Arm.y = (int)Arm.Range.Y_Max;
+			sign = true;
+		}
+		
+		if((ble_data.L_1 !=0 || ble_data.R_1 != 0))	
+		{
+			BLE_Arm.z += 3*((int)ble_data.R_1 - (int)ble_data.L_1);
+			if(BLE_Arm.z < Arm.Range.Z_Min)	BLE_Arm.z = (int)Arm.Range.Z_Min;
+			else if(BLE_Arm.z > Arm.Range.Z_Max)	BLE_Arm.z = (int)Arm.Range.Z_Max;
+			sign = true;
+		}
+
+		if(sign)
+		{
+			lv_slider_set_value(lv_obj_ARM.Motor_Control.slider_X.slider, BLE_Arm.x, LV_ANIM_ON);
+			lv_slider_set_value(lv_obj_ARM.Motor_Control.slider_Y.slider, BLE_Arm.y, LV_ANIM_ON);
+			lv_slider_set_value(lv_obj_ARM.Motor_Control.slider_Z.slider, BLE_Arm.z, LV_ANIM_ON);
+			char buf[20]={0};
+			sprintf(buf, "%d", BLE_Arm.x);
+			lv_label_set_text(lv_obj_ARM.Motor_Control.slider_X.slider_label, buf);
+			sprintf(buf, "%d", BLE_Arm.y);
+			lv_label_set_text(lv_obj_ARM.Motor_Control.slider_Y.slider_label, buf);
+			sprintf(buf, "%d", BLE_Arm.z);
+			lv_label_set_text(lv_obj_ARM.Motor_Control.slider_Z.slider_label, buf);
+			lv_Arm_Coord_Control();
+		}
+		
+		if(ble_data.A==1&&ble_data.B==0)
+		{
+			Claw_Open();
+		}
+		else if(ble_data.A==0&&ble_data.B==1)
+		{
+			Claw_Close();
+		}
+		
+		if(ble_data.R_3==1)
+		{
+			lv_Arm_Coord_Control_Reset();
+		}
+		BLE_Arm.Control_Sign = false;
+	}
+}
+
+void BLE_PID_control()
+{
 	if(ble_data.X==1)
 	{
 		Wheel.PID_Sign=true;
@@ -162,6 +144,7 @@ void BLE_value_control()
 		Wheel.PID_Sign=false;
 	}
 }
+
 void BLE_wheel_control()
 {
 	if(ble_data.L_X>-200&&ble_data.L_X<200)	ble_data.L_X=0;
@@ -213,19 +196,29 @@ void BLE_control()
 	}
 	else if(Wheel.debug_sign==false)
 	{
-		BLE_value_control();
-		// BLE_wheel_control();
+		BLE_PID_control();
+		BLE_wheel_control();
 	}
 }
+
 void BLE_State_Display()
 {
 	HAL_Delay(1);
     if(HAL_GPIO_ReadPin(BLE_STATE_GPIO_Port,BLE_STATE_Pin)==GPIO_PIN_SET)
     {
+		HAL_TIM_Base_Stop_IT(&htim5);
 	    lv_label_set_text(lv_obj_BLE.lable.BLE,"手柄未连接");
     }
     else
     {
+		HAL_TIM_Base_Start_IT(&htim5);
 	    lv_label_set_text(lv_obj_BLE.lable.BLE,"手柄已连接");
     }
+}
+
+void BLE_Init()
+{
+	BLE_Arm.x = Arm_Coord_X_0;
+	BLE_Arm.y = Arm_Coord_Y_0;
+	BLE_Arm.z = Arm_Coord_Z_0;
 }

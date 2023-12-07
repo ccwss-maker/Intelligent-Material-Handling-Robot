@@ -11,7 +11,7 @@
         "motro_control_queul.h": "c",
         "motro_control.h": "c",
         "arm.h": "c",
-        "lv_app_function.h": "c"
-    },
-    "cmake.sourceDirectory": "D:/PersonalDada/Program/STM32_F412RE/WuLiuCar-V4.0/Core/lvgl-master"
+        "lv_app_function.h": "c",
+        "lv_app_arm.h": "c"
+    }
 }

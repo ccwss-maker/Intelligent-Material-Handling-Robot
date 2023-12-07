@@ -40,7 +40,9 @@ wuliucar-v4.0/ble.o: ..\Core\Src\ble.c ..\Core\Inc\ble.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim_ex.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_uart.h \
   D:\SystemData\Program\Work\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdbool.h \
-  ..\Core\Inc\usart.h ..\Core\lvgl\myself\lv_app.h \
+  ..\Core\Inc\usart.h ..\Core\Inc\tim.h ..\Core\Inc\Arm.h \
+  ..\Core\Inc\Motro_Control.h ..\Core\Inc\Motro_Control_Queul.h \
+  ..\Core\Inc\PID.h ..\Core\Inc\wheel.h ..\Core\lvgl\myself\lv_app.h \
   ..\Core\lvgl\myself\lv_app_function.h ..\Core\lvgl\src\lvgl.h \
   ..\Core\lvgl\src\..\lvgl.h ..\Core\lvgl\src\misc\lv_log.h \
   ..\Core\lvgl\src\misc\..\lv_conf_internal.h \
@@ -282,5 +284,4 @@ wuliucar-v4.0/ble.o: ..\Core\Src\ble.c ..\Core\Inc\ble.h \
   ..\Core\lvgl\myself\lv_app_pid.h \
   ..\Core\lvgl\myself\lv_app_motro_control.h \
   ..\Core\lvgl\myself\lv_app_battery.h \
-  ..\Core\lvgl\myself\lv_app_tracking.h ..\Core\Inc\wheel.h \
-  ..\Core\Inc\PID.h
+  ..\Core\lvgl\myself\lv_app_tracking.h

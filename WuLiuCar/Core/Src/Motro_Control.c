@@ -133,7 +133,7 @@ static void Motro_Transmit_Verify(UART_HandleTypeDef *huart, uint8_t *pData, uin
 {
 	if(Motro_Control.feedback_sign == true)
 	{
-		if(Motro_Msg_Queue.size > 10)
+		if(Motro_Msg_Queue.size > 100)
 		{
 			QueueDestroy(&Motro_Msg_Queue);
 			QueueInit(&Motro_Msg_Queue);
@@ -165,28 +165,28 @@ void Motor_Open(uint8_t Address)
 {
 	uint8_t receive_type[3]={Address,0x02,0x6B};
 	uint8_t data[4]={Address,0xF3,0X01,0X6B};
-	Motro_Transmit_Verify(&huart3, data, 4, receive_type, Motro_Control_Nomal_Sign);
+	Motro_Transmit_Verify(&huart1, data, 4, receive_type, Motro_Control_Nomal_Sign);
 }
 
 void Motor_Close(uint8_t Address)
 {
 	uint8_t receive_type[3]={Address,0x02,0x6B};
 	uint8_t data[4]={Address,0xF3,0X00,0X6B};
-	Motro_Transmit_Verify(&huart3, data, 4, receive_type, Motro_Control_Nomal_Sign);
+	Motro_Transmit_Verify(&huart1, data, 4, receive_type, Motro_Control_Nomal_Sign);
 }
 
 void Motor_MStep_Set(uint8_t Address, uint8_t num)  //设置细分步数
 {
 	uint8_t data[4]={Address, 0x84, num, 0x6B};
 	uint8_t receive_type[3]={Address,0x02,0x6B};
-	Motro_Transmit_Verify(&huart3, data, 4, receive_type, Motro_Control_Nomal_Sign);
+	Motro_Transmit_Verify(&huart1, data, 4, receive_type, Motro_Control_Nomal_Sign);
 }
 
-void Motor_Set_0(uint8_t Address)  //设置细分步数
+void Motor_Set_0(uint8_t Address)
 {
 	uint8_t data[4]={Address, 0x0A, 0x6D, 0x6B};
 	uint8_t receive_type[3]={Address,0x02,0x6B};
-	Motro_Transmit_Verify(&huart3, data, 4, receive_type, Motro_Control_Nomal_Sign);
+	Motro_Transmit_Verify(&huart1, data, 4, receive_type, Motro_Control_Nomal_Sign);
 }
 
 /*速度控制*/
@@ -206,7 +206,7 @@ void Motor_Speed_Control(uint8_t Address, int16_t speed, uint8_t aacelerated)/*1
 		receive_type[0]=1;
 	}
 
-	Motro_Transmit_Verify(&huart3, data, 6, receive_type, Motro_Control_Nomal_Sign);
+	Motro_Transmit_Verify(&huart1, data, 6, receive_type, Motro_Control_Nomal_Sign);
 }
 
 /*相对位置控制*/
@@ -232,11 +232,9 @@ void Motor_Relative_Position_Control(uint8_t Address, int8_t direction, uint16_t
 	uint8_t receive_type[3]={Address,0x02,0x6B};
 	Motro_Control.Angle_Control.Done_Num--;
 	Motor_Position_TIM_Start(Address);
-	Arm_Symbol_Set(Address, USR_SYMBOL_Underway);
-	Motro_Transmit_Verify(&huart3,data,9,receive_type, Motro_Control_Nomal_Sign);
+	Motro_Transmit_Verify(&huart1,data,9,receive_type, Motro_Control_Nomal_Sign);
 }
 /*绝对位置控制*/
-volatile float dataaaa;
 void Motor_Absolute_Control(uint8_t Address, int8_t direction, uint16_t speed, uint8_t accelerated, float angle, bool Angle_Check_Sign, uint16_t Subdivision_Step, float Reduction_Ratio)
 {
     uint8_t ID = Address - 1;
@@ -259,9 +257,12 @@ void Motor_Absolute_Control(uint8_t Address, int8_t direction, uint16_t speed, u
                num++;
             }while(num < 5);
         }
+				if(Motro_Control.Angle.Done_sign[ID]!=true)
+				{
+					Motro_Control.Angle.Value[ID] = Motro_Control.Angle_Control.Value_Pub[ID].angle_last;
+				}
 		Motro_Control.Angle_Control.Value_Pub[ID].angle_last = angle;
-		dataaaa = angle - Motro_Control.Angle.Value[ID];
-		Motor_Relative_Position_Control(Address, direction, speed, accelerated, dataaaa, Subdivision_Step, Reduction_Ratio);
+		Motor_Relative_Position_Control(Address, direction, speed, accelerated, angle - Motro_Control.Angle.Value[ID], Subdivision_Step, Reduction_Ratio);
     }
 	else
 	{
@@ -278,6 +279,7 @@ void Motor_Absolute_Control(uint8_t Address, int8_t direction, uint16_t speed, u
 /*上电归零*/
 void Motor_Absolute_Angle_To_0(uint8_t Address, int8_t direction, uint16_t speed, uint8_t aacelerated, float Encoder_Angle_0, uint16_t Subdivision_Stepfloat, float Reduction_Ratio)
 {
+		bool sign = false;
     uint8_t num = 0;
     uint8_t time_ms = 0;
     do{
@@ -286,13 +288,20 @@ void Motor_Absolute_Angle_To_0(uint8_t Address, int8_t direction, uint16_t speed
             HAL_Delay(1);
             time_ms++;
         }
-        while(time_ms < 50 && (Motro_Control.Encoder_Angle.Done_sign[Address-1] != true));
+        while(time_ms < 100 && (Motro_Control.Encoder_Angle.Done_sign[Address-1] != true));
         if(Motro_Control.Encoder_Angle.Done_sign[Address-1])
+				{
+						sign = true;
             break;
+				}
         num++;
     }while(num < 5);
-    float Encoder_Angle = Motro_Control.Encoder_Angle.Value[Address-1];
-	Motor_Absolute_Control(Address, direction, speed, aacelerated, (Encoder_Angle_0 - Encoder_Angle)/Reduction_Ratio, false, Subdivision_Stepfloat, Reduction_Ratio);
+		if(sign == true)
+		{
+			float Encoder_Angle = Motro_Control.Encoder_Angle.Value[Address-1];
+			float angle = (Encoder_Angle_0 - Encoder_Angle)/Reduction_Ratio;
+			Motor_Absolute_Control(Address, direction, speed, aacelerated, angle, false, Subdivision_Stepfloat, Reduction_Ratio);
+		}
 }
 /*位置更新完成检测*/
 bool Motor_Position_Done(uint8_t length, uint8_t data[])
@@ -310,7 +319,6 @@ bool Motor_Position_Done(uint8_t length, uint8_t data[])
 				Motro_Control.Angle_Control.Done_sign[ID] = true;
 				Motro_Control.Angle_Control.Done_Num++;
 				Motor_Position_TIM_Stop(Address);
-				Arm_Symbol_Set(Address, USR_SYMBOL_Complete);
 				Motor_Position_Done_Ckeck(Address);
 				sign = true;
 			}
@@ -403,13 +411,12 @@ void Motro_Position_Check(uint8_t Address)
 	Motro_Control.Angle.Value[ID] = 0;
 	Motro_Control.Angle.Done_sign[ID] = false;
 	uint8_t data[3] = {Address, 0x36, 0x6B};
-	Motro_Transmit_Verify(&huart3, data, 3, NULL, Motro_Position_Check_Sign);
+	Motro_Transmit_Verify(&huart1, data, 3, NULL, Motro_Position_Check_Sign);
 }
 
 static float Motro_Position_Calculate(uint8_t Address, uint8_t data[])
 {
 	uint8_t ID = Address - 1;
-	float Angle;
 	int32_t Position = (int32_t)(	
 									((int32_t)data[1] << 24) |
 									((int32_t)data[2] << 16) |
@@ -418,18 +425,21 @@ static float Motro_Position_Calculate(uint8_t Address, uint8_t data[])
 								);
 	
 	lv_obj_t ** label = &lv_obj_ARM.Motor_Debug.label_Angle_Rear_Arm;
-	Angle = (float)Position * 360.f / 65536.f / Motro_Control.Reduction_Ratio[ID];
+	float Angle = (float)Position * 360.0 / 65536.0 / Motro_Control.Reduction_Ratio[ID];
 	
 	switch (Address)
 	{
 		case Arm_Rear_Address:
 			label += 0;
+			Angle += Rear_Angle_To_0_Angle;
 			break;
 		case Arm_Front_Address:
 			label += 1;
+			Angle += Front_Angle_To_0_Angle;
 			break;
 		case Arm_Pedestal_Address:
 			label += 2;
+			Angle += Pedestal_Angle_To_0_Angle;
 			break;
 	}
 	char string[20]={0};
@@ -445,7 +455,7 @@ void Motro_Encoder_Check(uint8_t Address)
 	uint8_t ID = Address - 1;
 	Motro_Control.Encoder_Angle.Done_sign[ID] = false;
 	uint8_t data[3] = {Address, 0x30, 0x6B};
-	Motro_Transmit_Verify(&huart3, data, 3, NULL, Motro_Encoder_Check_Sign);
+	Motro_Transmit_Verify(&huart1, data, 3, NULL, Motro_Encoder_Check_Sign);
 }
 
 static float Motro_Encoder_Calculate(uint8_t Address, uint8_t data[])
@@ -487,15 +497,15 @@ void Motro_Control_Init()
 	
 	for(uint8_t i=0; i<7; i++)
 	{
-		Motro_Control.Angle_Control.Done_sign[i] = true;
 		Motro_Control.Angle.Value[i] = 0;
+		Motro_Control.Angle_Control.Done_sign[i] = true;
 		Motro_Control.Angle_Control.Pub_sign[i] = true;
 	}
 	Motro_Control.Angle_Control.Done_Num = Angle_Control_Num;
 
-	Motro_Control.Reduction_Ratio[Arm_Rear_Address-1] = Arm_Reduction_Ratio;
-	Motro_Control.Reduction_Ratio[Arm_Front_Address-1] = Arm_Reduction_Ratio;
-	Motro_Control.Reduction_Ratio[Arm_Pedestal_Address-1] = 1;
+	Motro_Control.Reduction_Ratio[Arm_Rear_Address-1] = Arm_Rear_Reduction_Ratio;
+	Motro_Control.Reduction_Ratio[Arm_Front_Address-1] = Arm_Front_Reduction_Ratio;
+	Motro_Control.Reduction_Ratio[Arm_Pedestal_Address-1] = Arm_Pedestal_Reduction_Ratio;
 
 	Motro_Control.Encoder_Angle_Correction[Arm_Rear_Address-1] = Rear_Encoder_Angle_Correction;
 	Motro_Control.Encoder_Angle_Correction[Arm_Front_Address-1] = Front_Encoder_Angle_Correction;

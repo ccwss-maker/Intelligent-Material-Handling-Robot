@@ -267,6 +267,7 @@
 "wuliucar-v4.0\wheel.o"
 "wuliucar-v4.0\arm.o"
 "wuliucar-v4.0\pid.o"
+"..\Middlewares\ST\ARM\DSP\Lib\arm_cortexM4l_math.lib"
 --strict --scatter "WuLiuCar-V4.0\WuLiuCar-V4.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

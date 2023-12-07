@@ -208,8 +208,8 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)
 
     /* I2C3 DMA Init */
     /* I2C3_RX Init */
-    hdma_i2c3_rx.Instance = DMA1_Stream2;
-    hdma_i2c3_rx.Init.Channel = DMA_CHANNEL_3;
+    hdma_i2c3_rx.Instance = DMA1_Stream1;
+    hdma_i2c3_rx.Init.Channel = DMA_CHANNEL_1;
     hdma_i2c3_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
     hdma_i2c3_rx.Init.PeriphInc = DMA_PINC_DISABLE;
     hdma_i2c3_rx.Init.MemInc = DMA_MINC_ENABLE;

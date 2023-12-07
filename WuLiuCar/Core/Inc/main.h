@@ -57,11 +57,11 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define TOUCH_RST_Pin GPIO_PIN_13
-#define TOUCH_RST_GPIO_Port GPIOC
 #define TOUCH_INT_Pin GPIO_PIN_14
 #define TOUCH_INT_GPIO_Port GPIOC
 #define TOUCH_INT_EXTI_IRQn EXTI15_10_IRQn
+#define TOUCH_RST_Pin GPIO_PIN_15
+#define TOUCH_RST_GPIO_Port GPIOC
 #define UART_IMU_TX_MCU_Pin GPIO_PIN_2
 #define UART_IMU_TX_MCU_GPIO_Port GPIOA
 #define UART_IMU_RX_MCU_Pin GPIO_PIN_3
@@ -74,12 +74,12 @@ void Error_Handler(void);
 #define OLED_DC_GPIO_Port GPIOA
 #define OLED_MOSI_Pin GPIO_PIN_7
 #define OLED_MOSI_GPIO_Port GPIOA
+#define OLED_CS_Pin GPIO_PIN_4
+#define OLED_CS_GPIO_Port GPIOC
 #define UART_CAM_RX_Pin GPIO_PIN_5
 #define UART_CAM_RX_GPIO_Port GPIOC
 #define I2C_NVIDIA_SCL_Pin GPIO_PIN_10
 #define I2C_NVIDIA_SCL_GPIO_Port GPIOB
-#define OLED_CS_Pin GPIO_PIN_12
-#define OLED_CS_GPIO_Port GPIOB
 #define UART_BLE_TX_MCU_Pin GPIO_PIN_6
 #define UART_BLE_TX_MCU_GPIO_Port GPIOC
 #define UART_BLE_RX_MCU_Pin GPIO_PIN_7
