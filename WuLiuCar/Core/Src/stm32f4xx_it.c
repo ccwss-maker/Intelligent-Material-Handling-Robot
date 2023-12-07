@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2022 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -52,18 +51,14 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#include <imu.h>
-#include <string.h>
-#include <ble.h>
 
-extern imu_uart_ imu_uart;
-extern ble_uart_ ble_uart;
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
 extern I2C_HandleTypeDef hi2c2;
 extern I2C_HandleTypeDef hi2c3;
 extern TIM_HandleTypeDef htim1;
+extern DMA_HandleTypeDef hdma_usart1_tx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart6_rx;
 extern UART_HandleTypeDef huart2;
@@ -272,27 +267,11 @@ void I2C2_ER_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-	uint32_t tmp_flag = 0;
-	uint32_t temp;
-	tmp_flag =__HAL_UART_GET_FLAG(&huart2,UART_FLAG_IDLE);
-	if((tmp_flag != RESET))
-	{ 
-		__HAL_UART_CLEAR_IDLEFLAG(&huart2);
-		HAL_UART_DMAStop(&huart2); 
-		temp  =  __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);
-		imu_uart.rx_len =  imu_uart_buffer - temp; 
-		imu_uart.recv_end_flag = 1;	
-		
-		IMU_Receive();
-		memset(imu_uart.receive,0,imu_uart.rx_len);
-		imu_uart.rx_len = 0;//清除计数
-		imu_uart.recv_end_flag = 0;//清除接收结束标志
-		HAL_UART_Receive_DMA(&huart2,(uint8_t*)imu_uart.receive,imu_uart_buffer);//重新打开DMA接收
-		
-	}
+
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
+
   /* USER CODE END USART2_IRQn 1 */
 }
 
@@ -306,8 +285,22 @@ void DMA2_Stream1_IRQHandler(void)
   /* USER CODE END DMA2_Stream1_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart6_rx);
   /* USER CODE BEGIN DMA2_Stream1_IRQn 1 */
-	
+
   /* USER CODE END DMA2_Stream1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA2 stream7 global interrupt.
+  */
+void DMA2_Stream7_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA2_Stream7_IRQn 0 */
+
+  /* USER CODE END DMA2_Stream7_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart1_tx);
+  /* USER CODE BEGIN DMA2_Stream7_IRQn 1 */
+
+  /* USER CODE END DMA2_Stream7_IRQn 1 */
 }
 
 /**
@@ -316,27 +309,7 @@ void DMA2_Stream1_IRQHandler(void)
 void USART6_IRQHandler(void)
 {
   /* USER CODE BEGIN USART6_IRQn 0 */
-	uint32_t tmp_flag = 0;
-	uint32_t temp;
-	tmp_flag =__HAL_UART_GET_FLAG(&huart6,UART_FLAG_IDLE);
-	if((tmp_flag != RESET))
-	{ 
-		__HAL_UART_CLEAR_IDLEFLAG(&huart6);
-		HAL_UART_DMAStop(&huart6); 
-		temp  =  __HAL_DMA_GET_COUNTER(&hdma_usart6_rx);
-		ble_uart.rx_len =  ble_uart_buffer - temp; 
-		ble_uart.recv_end_flag = 1;	
-	
-		#if Wheel_PID_Sign
-		BLE_PID_Receive();
-		#else
-		BLE_Move_Receive();
-		#endif
-		memset(ble_uart.receive,0,ble_uart.rx_len);
-		ble_uart.rx_len = 0;//清除计数
-		ble_uart.recv_end_flag = 0;//清除接收结束标志
-		HAL_UART_Receive_DMA(&huart6,(uint8_t*)ble_uart.receive,ble_uart_buffer);//重新打开DMA接收
-	}
+
   /* USER CODE END USART6_IRQn 0 */
   HAL_UART_IRQHandler(&huart6);
   /* USER CODE BEGIN USART6_IRQn 1 */

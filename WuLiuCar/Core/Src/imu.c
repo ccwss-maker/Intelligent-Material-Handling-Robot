@@ -10,12 +10,12 @@ uint8_t check(uint8_t n)
 	uint8_t i;
 	for(i=n;i<n+10;i++)
 	{
-		check+=imu_uart.receive[i];
+		check+=imu_uart.receive_imu[i];
 	}
 	
-	if(check==imu_uart.receive[i])
+	if(check==imu_uart.receive_imu[i])
 	{
-		memcpy(message_imu.data,&imu_uart.receive[n+2],6);
+		memcpy(message_imu.data,&imu_uart.receive_imu[n+2],6);
 		return 1;
 	}
 	else return 0;
@@ -31,9 +31,9 @@ void IMU_Receive()
 		}
 		if(check(imu_ang_vel_start))	//角速度数据校验
 		{
-			message_imu.Wx=(float)message_imu.data[0]/32768*2000/360*3.14;
-			message_imu.Wy=(float)message_imu.data[1]/32768*2000/360*3.14;
-			message_imu.Wz=(float)message_imu.data[2]/32768*2000/360*3.14;
+			message_imu.Wx=(float)message_imu.data[0]/32768*2000;
+			message_imu.Wy=(float)message_imu.data[1]/32768*2000;
+			message_imu.Wz=(float)message_imu.data[2]/32768*2000;
 			message_imu.W=pow(pow(message_imu.Wx,2)+pow(message_imu.Wy,2)+pow(message_imu.Wz,2),0.5);
 		}
 		if(check(imu_angle_start))	//角度数据校验

@@ -3,8 +3,8 @@
  * Auto generated Run-Time-Environment Component Configuration File
  *      *** Do not modify ! ***
  *
- * Project: 'WuLiuCar-V2.0' 
- * Target:  'WuLiuCar-V2.0' 
+ * Project: 'WuLiuCar-V3.0' 
+ * Target:  'WuLiuCar-V3.0' 
  */
 
 #ifndef RTE_COMPONENTS_H

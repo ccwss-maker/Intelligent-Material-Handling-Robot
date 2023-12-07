@@ -7,13 +7,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2022 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -34,8 +33,6 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -45,20 +42,19 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-#define	delay_3 10
-#define delay_2 60	
-#define delay_1 100		
 
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -119,15 +115,15 @@ void Error_Handler(void);
 #define PWM_Arm_6_Pin GPIO_PIN_9
 #define PWM_Arm_6_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
+#define	delay_3 10
+#define delay_2 60	
+#define delay_1 100		
 #define PWM_JXB_1 TIM3->CCR1
 #define PWM_JXB_2 TIM3->CCR2
 #define PWM_JXB_3 TIM4->CCR1
 #define PWM_JXB_4 TIM4->CCR2
 #define PWM_JXB_5 TIM4->CCR3
 #define PWM_JXB_6 TIM4->CCR4
-
-
-#define PID_Config_Mode 0
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2022 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -28,13 +27,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-///////////////////////////////OLED/////////////////////////////	
 #include <display.h>
 #include <key.h>
 #include <arm.h>
 #include <wheel.h>
 #include <ble.h>
 #include <imu.h>
+#include "PID.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,32 +43,24 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+extern imu_uart_ imu_uart;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
 extern u8g2_t u8g2;
 extern uint8_t page;
 extern mouse_information_ mouse_information[4];
+extern uint8_t receive[8];
+extern float w_pid;
+extern PID_	PID;
 
 uint8_t Tracking_Data[4]={0};
-uint8_t ble[20]={0};
-#if PID_Config_Mode
-	float www=0;
-	float yaw=0;
-#else 
-	extern ble_uart_ ble_uart;
-#endif
-
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,24 +78,32 @@ int fputc(int ch, FILE *f)
   return ch;
 }
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)  
+{
+	if(huart->Instance == USART6)   
+	{
+		BLE_Receive();
+	}
+}
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim==&htim1)
 	{
     key_test();
 		OLED_display();
-//		uint8_t data=0xFF;
-//		HAL_I2C_Master_Transmit(&hi2c3,0x01<<1,&data,1,HAL_MAX_DELAY);
-//		HAL_I2C_Master_Receive(&hi2c3,0x01<<1,&Tracking_Data[0],1,HAL_MAX_DELAY);
-//		
-//		HAL_I2C_Master_Transmit(&hi2c3,0x02<<1,&data,1,HAL_MAX_DELAY);
-//		HAL_I2C_Master_Receive(&hi2c3,0x02<<1,&Tracking_Data[1],1,HAL_MAX_DELAY);
-//		
-//		HAL_I2C_Master_Transmit(&hi2c3,0x03<<1,&data,1,HAL_MAX_DELAY);
-//		HAL_I2C_Master_Receive(&hi2c3,0x03<<1,&Tracking_Data[2],1,HAL_MAX_DELAY);
-//		
-//		HAL_I2C_Master_Transmit(&hi2c3,0x04<<1,&data,1,HAL_MAX_DELAY);
-//		HAL_I2C_Master_Receive(&hi2c3,0x04<<1,&Tracking_Data[3],1,HAL_MAX_DELAY);
+		
+		uint8_t data=0xFF;
+		HAL_I2C_Master_Transmit(&hi2c3,0x01<<1,&data,1,HAL_MAX_DELAY);
+		HAL_I2C_Master_Receive(&hi2c3,0x01<<1,&Tracking_Data[0],1,HAL_MAX_DELAY);
+		
+		HAL_I2C_Master_Transmit(&hi2c3,0x02<<1,&data,1,HAL_MAX_DELAY);
+		HAL_I2C_Master_Receive(&hi2c3,0x02<<1,&Tracking_Data[1],1,HAL_MAX_DELAY);
+		
+		HAL_I2C_Master_Transmit(&hi2c3,0x03<<1,&data,1,HAL_MAX_DELAY);
+		HAL_I2C_Master_Receive(&hi2c3,0x03<<1,&Tracking_Data[2],1,HAL_MAX_DELAY);
+		
+		HAL_I2C_Master_Transmit(&hi2c3,0x04<<1,&data,1,HAL_MAX_DELAY);
+		HAL_I2C_Master_Receive(&hi2c3,0x04<<1,&Tracking_Data[3],1,HAL_MAX_DELAY);
 	}
 }
 /* USER CODE END 0 */
@@ -116,6 +115,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -164,35 +164,28 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_3);
 	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_4);
+
 	////////////////////////////////////////////    Arm_Init ///////////////////////
 	arm_Init();
   ////////////////////////////////////////////    IMU_Init ///////////////////////
 	IMU_Init();
+	////////////////////////////////////////////    UART6_Init ///////////////////////
+	HAL_UART_Receive_DMA(&huart6,receive,5);
   ////////////////////////////////////////////    Wheel_Init ///////////////////////
   Wheel_Init();
-	
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {	
+  {
 		Control_NUM(mouse_information[2], page);
 		Control_Angle(mouse_information[0], page);
 		Control_SPD(mouse_information[1], page);
     BLE_control();
-		
-//    key_test();
-//		OLED_display();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	#if PID_Config_Mode
-		extern message_imu_ message_imu;
-		Control_Mecanum(0,0,yaw,255);
-		PRINTF(PID,"%f,%f",yaw,message_imu.Yaw);
-//		PRINTF(PID,"%f,%f",www,message_imu.Wz);
-	#endif
   }
   /* USER CODE END 3 */
 }

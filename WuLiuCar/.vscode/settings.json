@@ -1,9 +1,0 @@
-{
-    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
-    "editor.suggest.snippetsPreventQuickSuggestions": false,
-    "aiXcoder.showTrayIcon": true,
-    "files.associations": {
-        "main.h": "c",
-        "display.h": "c"
-    }
-}

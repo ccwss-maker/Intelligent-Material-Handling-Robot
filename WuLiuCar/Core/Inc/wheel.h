@@ -12,7 +12,6 @@
 #define Car_b	0.084
 #define Wheel_r 0.046
 
-
 //	void Control_ALL(key_pressed_* key_pressed_p, mouse_information_ mouse_information, uint8_t page);
 void Control_SPD(mouse_information_ mouse_information, uint8_t page);
 void Control_Mecanum(float v_x, float v_y, float w, uint8_t aacelerated);

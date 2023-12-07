@@ -83,7 +83,9 @@ void Control_NUM_add_sub(volatile uint32_t* arm_p, uint8_t key, uint8_t mode, in
 			else								*arm_p = max_min;
 	}
 }
-
+#include <wheel.h>
+static uint8_t sign__[6]={0};
+extern PID_	PID;
 void Control_Angle(mouse_information_ mouse_information, uint8_t page)
 {
 	static bool sign=true;
@@ -101,37 +103,73 @@ void Control_Angle(mouse_information_ mouse_information, uint8_t page)
 				switch(mouse_information.mouse_2[1])
 				{
 					case 0:
-						if(key_pressed.T[0])	
+						if(sign__[0]==0&&key_pressed.T[0])	
 						{
-							arm.x.value+=1;
+							PID.Kp+=0.01;
+							sign__[0]=1;
 						}
-						else if(key_pressed.B[0])	
+						else if(sign__[1]==0&&key_pressed.B[0])	
 						{
-							arm.x.value-=1;
+							PID.Kp-=0.01;
+							sign__[1]=1;
 						}
-						Control_Angle_(&arm.x, &arm.y, &arm.z, mouse_information.mouse_1);
+						
+						if(key_pressed.T[0]==0)	
+						{
+							sign__[0]=0;
+						}
+						
+						if(key_pressed.B[0]==0)	
+						{
+							sign__[1]=0;
+						}
+//						Control_Angle_(&arm.x, &arm.y, &arm.z, mouse_information.mouse_1);
 						break;
 					case 1:
-						if(key_pressed.T[0])	
+						if(sign__[0]==0&&key_pressed.T[0])	
 						{
-							arm.y.value+=1;
+							PID.Ki+=0.001;
+							sign__[0]=1;
 						}
-						else if(key_pressed.B[0])	
+						else if(sign__[1]==0&&key_pressed.B[0])	
 						{
-							arm.y.value-=1;
+							PID.Ki-=0.001;
+							sign__[1]=1;
 						}
-						Control_Angle_(&arm.y, &arm.z, &arm.x, mouse_information.mouse_1);
+						
+						if(key_pressed.T[0]==0)	
+						{
+							sign__[0]=0;
+						}
+						
+						if(key_pressed.B[0]==0)	
+						{
+							sign__[1]=0;
+						}
+//						Control_Angle_(&arm.y, &arm.z, &arm.x, mouse_information.mouse_1);
 						break;
 					case 2:
-						if(key_pressed.T[0])	
+						if(sign__[0]==0&&key_pressed.T[0])	
 						{
-							arm.z.value+=1;
+							PID.Kd+=0.01;
+							sign__[0]=1;
 						}
-						else if(key_pressed.B[0])	
+						else if(sign__[1]==0&&key_pressed.B[0])	
 						{
-							arm.z.value-=1;
+							PID.Kd-=0.01;
+							sign__[1]=1;
 						}
-						Control_Angle_(&arm.z, &arm.y, &arm.x, mouse_information.mouse_1);
+						
+						if(key_pressed.T[0]==0)	
+						{
+							sign__[0]=0;
+						}
+						
+						if(key_pressed.B[0]==0)	
+						{
+							sign__[1]=0;
+						}
+//						Control_Angle_(&arm.z, &arm.y, &arm.x, mouse_information.mouse_1);
 						break;
 				}
 			}

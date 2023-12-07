@@ -8,7 +8,7 @@
 typedef struct{
 	volatile uint8_t rx_len;  
 	volatile uint8_t recv_end_flag; 
-	uint8_t receive[imu_uart_buffer];
+	uint8_t receive_imu[imu_uart_buffer];
 }imu_uart_;
 
 typedef struct{

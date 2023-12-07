@@ -12,17 +12,15 @@ enum PID_MODE
 
 typedef struct
 {
+    uint8_t mode;
     //PID 三参数
-    float Kp;
-    float Ki;
-    float Kd;
-		
-    float max_iout; //最大积分输出
+    double Kp;
+    double Ki;
+    double Kd;
+
     float max_out;  //最大输出
-		
-		float Integral_Separation_Threshold;
-		float Dead_Zone;
-	
+    float max_iout; //最大积分输出
+
     float set;
     float fdb;
 
@@ -33,7 +31,8 @@ typedef struct
     float Dbuf[3];  //微分项 0最新 1上一次 2上上次
     float error[3]; //误差项 0最新 1上一次 2上上次
 
-    uint8_t mode;
+    float Integral_Separation_Threshold;
+    float Dead_Zone;
 	
 }PID_;
 void PID_init(PID_ *pid, uint8_t mode, float Kp, float Ki, float Kd, float max_out, float max_iout, float Integral_Separation_Threshold, float Dead_Zone);

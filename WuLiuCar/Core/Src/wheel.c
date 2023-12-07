@@ -4,16 +4,12 @@
 #include <key.h>
 #include <usart.h>
 #include <imu.h>
-#include <ble.h>
 
-PID_	PID[2];
+PID_	PID;
 float SPD_FL,SPD_FR,SPD_BL,SPD_BR;
 extern key_pressed_ key_pressed;	/*TL L BL T C B TR R BR*/
 extern message_imu_ message_imu;
-extern ble_data_ ble_data;
 float w_pid;
-uint8_t Wheel_PID_Sign=1; //1:启用PID控制 0：禁用PID控制
-uint8_t Wheel_Close_once_sign=1;
 ///*车轮控制*/
 //void Control_ALL(key_pressed_* key_pressed_p, mouse_information_ mouse_information, uint8_t page)
 //{
@@ -254,24 +250,29 @@ void Speed_pub(uint8_t address, int16_t speed, uint8_t aacelerated)/*1为正方�
 	HAL_Delay(1);
 }
 
+//void wheel_control0()
+//{		
+//	if(fabs(message_imu.Yaw)>1)
+//	while((&PID)->finish_sign!=1)
+//	{
+//		IMU_Receive();
+//		(&PID)->finish_sign=0;
+//		Control_Mecanum(0, 0, 0,255);
+//	}
+//}
 
 void Control_Mecanum(float v_x, float v_y, float w, uint8_t aacelerated)
 {
 	wheel_open();
-	if(Wheel_PID_Sign==1)
+	if(w==0)
 	{
-		if(w==0)
-		{
-			extern float yaw;
-			extern float www;
-			w=PID_calc(&PID[1],message_imu.Yaw,0);//位置环
-		}
-		else
-		{
-			IMU_Z_Init();
-		}
-		w=PID_calc(&PID[0],message_imu.Wz,w);//速度环
+		w=PID_calc(&PID,message_imu.Yaw,0);
 	}
+	else
+	{
+		IMU_Z_Init();
+	}
+	
 	SPD_FL = (v_y+v_x-w*(Car_a+Car_b))/Wheel_r;
 	SPD_FR = (v_y-v_x+w*(Car_a+Car_b))/Wheel_r;
 	SPD_BL = (v_y-v_x-w*(Car_a+Car_b))/Wheel_r;
@@ -280,6 +281,7 @@ void Control_Mecanum(float v_x, float v_y, float w, uint8_t aacelerated)
 	Speed_pub(2,SPD_FR,aacelerated);
 	Speed_pub(3,SPD_BL,aacelerated);
 	Speed_pub(4,SPD_BR,aacelerated);
+//	printf("%f,%f\n",w,message_imu.Yaw);
 }
 
 void wheel_open()
@@ -287,58 +289,20 @@ void wheel_open()
 	uint8_t data[4]={0,0xF3,0X01,0X6B};
 	HAL_UART_Transmit(&huart1,data,4,HAL_MAX_DELAY);
 	HAL_Delay(1);
-	
-	Wheel_Close_once_sign=1;
 }
 
 void wheel_close()
 {
-	if(Wheel_Close_once_sign==1)
+//	if(fabs(message_imu.Yaw)>PID.Dead_Zone||message_imu.W>5)
 	{
-		PID_clear(&PID[0]);
-		PID_clear(&PID[1]);
-		Control_Mecanum(0, 0, 0,255);
-		Wheel_Close_once_sign=0;
-	}
-	if(Wheel_PID_Sign==1)
-	{
-		if(fabs(message_imu.Yaw)>PID[1].Dead_Zone||message_imu.W>5)
+		while(fabs(message_imu.Yaw)>PID.Dead_Zone||message_imu.W>5)
 		{
-			while(fabs(message_imu.Yaw)>PID[1].Dead_Zone||message_imu.W>5)
-			{
-				if(ble_data.break_sign==true)
-				{
-					ble_data.break_sign=false;
-					PID_clear(&PID[0]);
-					PID_clear(&PID[1]);
-					return;
-				}
-				Control_Mecanum(0, 0, 0,255);
-			}
-			PID_clear(&PID[0]);
-			PID_clear(&PID[1]);
-			uint8_t data[4]={0,0xF3,0X00,0X6B};
-			HAL_UART_Transmit(&huart1,data,4,HAL_MAX_DELAY);
-			HAL_Delay(1);
+			Control_Mecanum(0, 0, 0,255);
 		}
-	}
-	else
-	{
-		if(message_imu.W>5)
-		{
-			while(message_imu.W>5)
-			{
-				if(ble_data.break_sign==true)
-				{
-					ble_data.break_sign=false;
-					return;
-				}
-				Control_Mecanum(0, 0, 0,255);
-			}
-			uint8_t data[4]={0,0xF3,0X00,0X6B};
-			HAL_UART_Transmit(&huart1,data,4,HAL_MAX_DELAY);
-			HAL_Delay(1);
-		}
+		PID_clear(&PID);
+		uint8_t data[4]={0,0xF3,0X00,0X6B};
+		HAL_UART_Transmit(&huart1,data,4,HAL_MAX_DELAY);
+		HAL_Delay(1);
 	}
 }
 
@@ -356,8 +320,7 @@ void Wheel_Init()
 {
 	wheel_close();
 	Set_MStep(0,0);
-	PID_init(&PID[0], PID_DELTA, 1.9, 0.2, 4.5, 11, 11, 11, 0.1);    //速度
-	PID_init(&PID[1], PID_POSITION, 0.025,0.0005,0.195,0.35,3,3,1); //位置
+	PID_init(&PID, PID_POSITION, 0.1, 0, 0.02, 20, 20, 10, 3);
 }
 
 void Wheel_PID_BLE()

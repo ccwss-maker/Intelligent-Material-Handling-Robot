@@ -145,28 +145,28 @@ void page_1_update_all()
 	page_1_update_num();
 	u8g2_SendBuffer(&u8g2);
 }
-extern PID_	PID[2];
+extern PID_	PID;
 /*第一页数值更新*/
 void page_1_update_num()
 {
 	u8g2_SetFont(&u8g2, u8g2_font_8x13_mf);
 	
-	sprintf((char*)str_buff,"%02X",Tracking_Data[0]);//arm.x.value  5.1f
+	sprintf((char*)str_buff,"%02x",Tracking_Data[0]);  //arm.x.value//PID.Kp
 	u8g2_DrawStr(&u8g2,24,23,(char*)str_buff); 
 	
-	sprintf((char*)str_buff,"%02X",Tracking_Data[1]);//arm.y.value
+	sprintf((char*)str_buff,"%02x",Tracking_Data[1]);	//arm.y.value//PID.Ki
 	u8g2_DrawStr(&u8g2,24,41,(char*)str_buff);   
 	
-	sprintf((char*)str_buff,"%02X",Tracking_Data[2]);//arm.z.value
+	sprintf((char*)str_buff,"%4.3f",PID.Kd);	//arm.z.value//PID.Kd
 	u8g2_DrawStr(&u8g2,24,59,(char*)str_buff);
 	
-	sprintf((char*)str_buff,"%02X",Tracking_Data[3]);
+	sprintf((char*)str_buff,"%5.1f",message_imu.Roll);						//arm.a
 	u8g2_DrawStr(&u8g2,78,23,(char*)str_buff);
 	
-	sprintf((char*)str_buff,"%5.1f",message_imu.Yaw);
+	sprintf((char*)str_buff,"%5.1f",message_imu.Pitch);						//arm.b
 	u8g2_DrawStr(&u8g2,78,41,(char*)str_buff);
 	
-	sprintf((char*)str_buff,"%5.1f",message_imu.W);
+	sprintf((char*)str_buff,"%5.1f",message_imu.Yaw);						//arm.C
 	u8g2_DrawStr(&u8g2,78,59,(char*)str_buff);
 }
 
